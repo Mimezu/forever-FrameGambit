@@ -1,5 +1,14 @@
 # Frame Gambit changelog
 
+## 1.2.2 - Build 70707 review
+
+- Checked every Blizzard frame name, mixin field, event and function the addon uses against the 70532 UI source (70338 -> 70532 diff). Nothing it relies on was removed or renamed; the minimap, gamepad action bar, chat and Edit Mode changes in that range do not touch the paths Frame Gambit uses.
+- Blizzard Legacy appearance: the window's close button follows Forever's new default (28 px at the frame's top-right corner, offset 0/3). The 70338 anchor (24 px at -2/1) put the X 2 px off and smaller than every other Camelot window.
+- The appearance picker no longer calls the combat-protected SetPropagateKeyboardInput while in combat.
+- Closing the editor also closes the chat-text, Form, Talent build, Size and Position pickers, so they cannot reappear with their blocker gone the next time the editor opens.
+- Less work per evaluator tick: the editor's "Active now" line is rewritten only when its text changes; the minimap blob-channel observer no longer re-probes the nine native setters 20 times a second once they are hooked; the gamepad "is this target being edited" check reuses the tick's frame lookup instead of resolving every target a second time; the party percentage pass no longer allocates its condition list per tick.
+- Removed a duplicated status line in the shortcut capture dialog.
+
 ## 1.2.1 - Build 70338
 
 - The PvP-flagged condition also re-checks on the new `PLAYER_PVP_FLAG_CHANGED` event.

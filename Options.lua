@@ -1633,7 +1633,8 @@ function ns:CreateOptions()
         panel.appearanceChoices[themeID] = choice
     end
     appearancePicker:SetScript("OnKeyDown", function(self, key)
-        if self.SetPropagateKeyboardInput then self:SetPropagateKeyboardInput(key ~= "ESCAPE") end
+        -- Protected in combat; the picker can still be open when a fight starts.
+        if self.SetPropagateKeyboardInput and not InCombatLockdown() then self:SetPropagateKeyboardInput(key ~= "ESCAPE") end
         if key == "ESCAPE" then appearancePicker:Hide() end
     end)
     local function UpdateAppearancePickerScale()
@@ -1938,6 +1939,11 @@ function ns:CreateOptions()
         if ns.ProfileDeleteConfirm and ns.ProfileDeleteConfirm:IsShown() then ns.ProfileDeleteConfirm:Hide() end
         if ns.ProfileTransfer and ns.ProfileTransfer:IsShown() then ns.ProfileTransfer:Hide() end
         if ns.CinematicKeyCapture and ns.CinematicKeyCapture:IsShown() then ns.CinematicKeyCapture:Hide() end
+        -- These are children of the panel: hidden with it, but still flagged
+        -- shown, so they would come back with the next panel:Show().
+        for _, key in ipairs({ "ChatTextPicker", "FormPicker", "SpecPicker", "LayoutSizePicker", "LayoutPositionPicker" }) do
+            if ns[key] and ns[key]:IsShown() then ns[key]:Hide() end
+        end
         if ns.CloseHelp then ns:CloseHelp() end
         if ns.CancelTutorial then ns:CancelTutorial("editor_closed") end
         if ns.SelectionOutline and not panel.peeking then ns:RefreshSelectionOutline() end
@@ -1981,6 +1987,9 @@ function ns:EnterEditorPeek()
     if self.ProfileDeleteConfirm and self.ProfileDeleteConfirm:IsShown() then self.ProfileDeleteConfirm:Hide() end
     if self.ProfileTransfer and self.ProfileTransfer:IsShown() then self.ProfileTransfer:Hide() end
     if self.CinematicKeyCapture and self.CinematicKeyCapture:IsShown() then self.CinematicKeyCapture:Hide() end
+    for _, key in ipairs({ "ChatTextPicker", "FormPicker", "SpecPicker", "LayoutSizePicker", "LayoutPositionPicker" }) do
+        if self[key] and self[key]:IsShown() then self[key]:Hide() end
+    end
     if self.CloseHelp then self:CloseHelp() end
     if self.CancelTutorial then self:CancelTutorial("preview") end
     self:StopPreview()
@@ -2160,7 +2169,6 @@ local function OpenCinematicKeyCapture(self, kind)
     capture.bindingKind = kind == "camera" and "camera" or "mode"
     capture.title:SetText(capture.bindingKind == "camera" and "Set camera shortcut" or "Set Cinematic shortcut")
     capture.status:SetText("Waiting for a shortcut..."); capture.status:SetTextColor(unpack(C.teal))
-    capture.status:SetText("Waiting for a shortcut...")
     capture:ClearAllPoints(); capture:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); capture.blocker:Show(); capture:Show(); capture:EnableKeyboard(true)
 end
@@ -3024,21 +3032,19 @@ function ns:RefreshActiveState()
         panel.liveReactionTargetID, panel.liveReactionIndex = panel.selected, activeIndex
     end
     self:RefreshLayoutLiveState()
+    -- Runs on every evaluator tick while the editor is open: build the line,
+    -- then write the font string only when it actually changed.
+    local text, color
     if state.pendingRestore then
-        panel.active:SetText("Waiting to restore previous profile")
-        panel.active:SetTextColor(unpack(C.amber))
+        text, color = "Waiting to restore previous profile", C.amber
     elseif state.unavailable then
-        panel.active:SetText("Unavailable")
-        panel.active:SetTextColor(unpack(C.amber))
+        text, color = "Unavailable", C.amber
     elseif state.hostHidden then
-        panel.active:SetText("Hidden by its addon")
-        panel.active:SetTextColor(unpack(C.amber))
+        text, color = "Hidden by its addon", C.amber
     elseif ns.runtime.percentageCurveErrors and ns.runtime.percentageCurveErrors[panel.selected] then
-        panel.active:SetText("Health/mana curve unavailable on this client")
-        panel.active:SetTextColor(unpack(C.amber))
+        text, color = "Health/mana curve unavailable on this client", C.amber
     elseif state.protectedPercentage then
-        panel.active:SetText("Health/mana opacity controlled by the game")
-        panel.active:SetTextColor(unpack(C.teal))
+        text, color = "Health/mana opacity controlled by the game", C.teal
     elseif state.reaction then
         local count = #(state.reaction.requirements or {})
         local info = ns.CONDITION_INFO[state.reaction.condition]
@@ -3053,17 +3059,23 @@ function ns:RefreshActiveState()
         end
         local inherited = state.inheritedFrom and ns.TargetByID[state.inheritedFrom]
         local prefix = inherited and ("Following " .. inherited.label .. ": ") or "Active now: "
-        panel.active:SetText(prefix .. ReactionLabel(state.reaction) .. (count > 0 and " + " .. count or "") .. momentDetail .. " -> " .. Percent(state.desired))
-        panel.active:SetTextColor(unpack(C.teal))
+        text = prefix .. ReactionLabel(state.reaction) .. (count > 0 and " + " .. count or "") .. momentDetail .. " -> " .. Percent(state.desired)
+        color = C.teal
     else
         local inherited = state.inheritedFrom and ns.TargetByID[state.inheritedFrom]
-        panel.active:SetText((inherited and ("Following " .. inherited.label .. ": Otherwise") or "Active now: Otherwise") .. " -> " .. Percent(state.desired))
-        panel.active:SetTextColor(unpack(C.muted))
+        text = (inherited and ("Following " .. inherited.label .. ": Otherwise") or "Active now: Otherwise") .. " -> " .. Percent(state.desired)
+        color = C.muted
     end
     local layoutNote = self:GetLayoutStatusNote(panel.selected)
     if layoutNote then
-        panel.active:SetText(panel.active:GetText() .. " - " .. layoutNote)
-        panel.active:SetTextColor(unpack(C.amber))
+        text, color = text .. " - " .. layoutNote, C.amber
+    end
+    -- Compare with the live text, not a cache: Core writes this line too
+    -- (profile switches, Cinematic toggles).
+    if panel.active:GetText() ~= text or panel._activeColor ~= color then
+        panel._activeColor = color
+        panel.active:SetText(text)
+        panel.active:SetTextColor(unpack(color))
     end
 end
 

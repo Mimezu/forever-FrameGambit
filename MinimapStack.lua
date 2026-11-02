@@ -102,6 +102,10 @@ local function ObserveBlobs(map)
         state = { channels = {}, alpha = 1 }
         blobStates[map] = state
     end
+    -- Runs every evaluator tick. Once every available setter is hooked there
+    -- is nothing left to discover: the map's method set does not change.
+    if state.observed then return state end
+    local complete = true
     for _, name in ipairs(blobMethods) do
         local ok, setter = pcall(function() return map["Set" .. name] end)
         if ok and type(setter) == "function" then
@@ -122,8 +126,12 @@ local function ObserveBlobs(map)
                     end
                 end)
             end
+            if not channel.hooked then complete = false end
+        elseif not ok then
+            complete = false
         end
     end
+    state.observed = complete or nil
     return state
 end
 

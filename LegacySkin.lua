@@ -241,7 +241,7 @@ function Skin:Apply(kind, frame, state, opts, enabled)
             -- A decoration-only Blizzard button supplies all four native
             -- textures. Input stays on the existing Frame Gambit control.
             local close = CreateFrame("Button", nil, frame, "UIPanelCloseButtonNoScripts")
-            close:SetSize(24, 24)
+            close:SetSize(28, 28)
             close:SetPoint("CENTER")
             close:SetFrameLevel(frame:GetFrameLevel() + 1)
             close:EnableMouse(false)
@@ -332,11 +332,12 @@ function Skin:Layout(panel, enabled)
     local native = enabled
     if panel.closeButton then
         -- Forever loads Blizzard_SharedXML's Camelot override, whose
-        -- UIPanelCloseButtonDefaultAnchorsMixin anchors TOPRIGHT (-2, 1).
+        -- UIPanelCloseButtonDefaultAnchorsMixin sizes the X 28 px and anchors
+        -- it TOPRIGHT (0, 3) since build 70532 (24 px at (-2, 1) on 70338).
         -- Mainline's (1, 0) pushes the X past the Camelot frame border.
         panel.closeButton:ClearAllPoints()
-        panel.closeButton:SetSize(native and 24 or 26, native and 24 or 26)
-        panel.closeButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", native and -2 or -4, native and 1 or -4)
+        panel.closeButton:SetSize(native and 28 or 26, native and 28 or 26)
+        panel.closeButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", native and 0 or -4, native and 3 or -4)
     end
     if enabled then
         for _, frame in ipairs({ panel.header, panel.cinematicControls }) do

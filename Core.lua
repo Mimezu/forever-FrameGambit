@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.2.1"
+ns.VERSION = "1.2.2"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
@@ -3420,6 +3420,8 @@ function ns:GetPartyMemberUnit(member)
     if unit == "player" or unit:match("^party[1-4]$") then return unit end
 end
 
+local PARTY_PERCENTAGE_CONDITIONS = { "party_health", "party_mana" }
+
 function ns:BuildPercentageContext(needed, context)
     local samples = {}
     local function Read(unit, mana)
@@ -3431,7 +3433,7 @@ function ns:BuildPercentageContext(needed, context)
     if needed.player_mana then context.player_mana = Read("player", true) end
     if (needed.party_health or needed.party_mana) and SafeBoolean(IsInRaid) == false then
         context.partyMemberPercentages = {}
-        for _, condition in ipairs({ "party_health", "party_mana" }) do
+        for _, condition in ipairs(PARTY_PERCENTAGE_CONDITIONS) do
             if needed[condition] then
                 local values, members = {}, {}
                 local mana = condition == "party_mana"

@@ -149,7 +149,7 @@ local close=CreateFrame("Button",nil,main)
 local cs={x=Object(close)}
 skin:Apply("close",close,cs,{},true)
 assert(cs.legacy.visuals.close.template=="UIPanelCloseButtonNoScripts")
-assert(cs.legacy.visuals.close.width==24 and not cs.legacy.visuals.close.mouse)
+assert(cs.legacy.visuals.close.width==28 and not cs.legacy.visuals.close.mouse)
 close:Fire("OnMouseDown"); assert(cs.legacy.visuals.close.buttonState=="PUSHED")
 close:Fire("OnMouseUp"); assert(cs.legacy.visuals.close.buttonState=="NORMAL")
 
@@ -171,9 +171,9 @@ for _,key in ipairs({"legacyTitle","legacyIcon","header","subtitle","version","a
     "profile","cinematic","peek","helpButton","headerDivider"}) do main[key]=Object(main) end
 main._legacyChrome=Object(main)
 skin:Layout(main,true)
-assert(main.closeButton.width==24 and main.closeButton.height==24)
-assert(main.closeButton.points[1][4]==-2 and main.closeButton.points[1][5]==1,
-    "Close button must match Forever's Camelot TOPRIGHT (-2, 1) anchor")
+assert(main.closeButton.width==28 and main.closeButton.height==28)
+assert(main.closeButton.points[1][4]==0 and main.closeButton.points[1][5]==3,
+    "Close button must match Forever's Camelot TOPRIGHT (0, 3) anchor (build 70532)")
 assert(not main.legacyTitle.shown and main.header.height==40,"Legacy header is a single toolbar row")
 assert(main.subtitle.justifyH=="LEFT")
 assert(main.profile.points[1][1]=="TOPLEFT" and main.profile.points[1][4]>=52,"Context group clears the portrait")

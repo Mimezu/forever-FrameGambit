@@ -38,7 +38,9 @@ end
 local function NativeTargetBar(id)
     local root = _G.GamepadMainActionBarFrame
     local page = root and root.PageUnit
-    local frame = page and ns:ResolveTarget(id)
+    -- Asked for every target on every evaluator tick (IsGamepadEditingTarget);
+    -- reuse the tick's resolve instead of a second full lookup per target.
+    local frame = page and ns:ResolveTargetThisTick(id)
     if not frame then return nil end
     for _, bar in pairs(page.actionBars or {}) do
         if frame == bar then return frame, page end
