@@ -1,0 +1,38 @@
+## Interface: 16001
+## Title: Frame Gambit
+## Notes: Friendly, priority-based visibility gambits for your UI.
+## Author: Mimezu
+## Version: 1.2.1
+## SavedVariables: FrameGambitDB
+## LoadSavedVariablesFirst: 1
+# Settings load through native SavedVariables.
+## OptionalDeps: EllesmereUI, EllesmereUIDamageMeters, EllesmereUIQuickdraw, OPie, DialogueUI, Details, SpeedyAutoLoot, GamepadCompanion
+## IconTexture: Interface\AddOns\FrameGambit\Assets\FrameGambitIcon
+## Category: Mimezu's Suite
+## Group: Mimezu_Interface
+
+ForeverBugReporter.local.lua
+Core.lua
+PercentageOpacity.lua
+ExtraConditions.lua
+SuiteWindows.lua
+Targets.lua
+FrameLayout.lua
+ChatStack.lua
+PartySelection.lua
+GamepadShoulders.lua
+GamepadLegend.lua
+GamepadIntegration.lua
+GamepadClassPrompts.lua
+CinematicChat.lua
+ChatText.lua
+ProviderRoles.lua
+DetailsAdapter.lua
+EUIUnitVisibility.lua
+EUIChatVisibility.lua
+MinimapStack.lua
+CinematicLetterbox.lua
+CinematicCamera.lua
+LegacySkin.lua
+Options.lua
+Tutorial.lua
