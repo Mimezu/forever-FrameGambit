@@ -500,8 +500,6 @@ local BUNDLED_SKIN = {
             button:HookScript("OnEnable", function() BundledButton(button) end)
         end
     end,
-    GetAccentColor = BundledAccent,
-    OnLooksChanged = function() end,
 }
 
 local function EUIOwnsVisual(object)
@@ -615,7 +613,6 @@ function ns:SetEUITheme(skin)
         for _, entry in ipairs(list) do ApplyEUIObject(kind, entry.object, entry.opts, false) end
     end
     UpdateEUIAccent()
-    if skin.OnLooksChanged then pcall(skin.OnLooksChanged, UpdateEUIAccent) end
 end
 
 function ns:ApplyAppearanceTheme(themeID)
@@ -1920,7 +1917,6 @@ function ns:CreateOptions()
     forget:SetPoint("BOTTOMRIGHT", reset, "TOPRIGHT", 0, 6)
     SetTooltip(forget, "Remove discovered frame", "Remove this discovered frame and its saved settings from every profile. Built-in frames stay listed.")
     panel.forgetTarget = forget
-    panel.mainFrames = { targets, center, presence }
     panel:SetScript("OnShow", function() ns:RenderOptions() end)
     panel:SetScript("OnHide", function()
         panel:StopMovingOrSizing()
@@ -1947,7 +1943,6 @@ function ns:CreateOptions()
         if ns.CloseHelp then ns:CloseHelp() end
         if ns.CancelTutorial then ns:CancelTutorial("editor_closed") end
         if ns.SelectionOutline and not panel.peeking then ns:RefreshSelectionOutline() end
-        ns:StopPreview()
         ns:CancelTargetDrag(true)
         ns:CancelReactionDrag()
         if panel.peeking then ns:RefreshSelectionOutline() end
@@ -1992,7 +1987,6 @@ function ns:EnterEditorPeek()
     end
     if self.CloseHelp then self:CloseHelp() end
     if self.CancelTutorial then self:CancelTutorial("preview") end
-    self:StopPreview()
     self:CancelTargetDrag(true)
     self:CancelReactionDrag()
     panel.peeking = true
@@ -2047,17 +2041,6 @@ end
 function ns:RefreshOptions()
     if self.Options and self.Options:IsVisible() then self:RenderOptions() end
 end
-
-local CINEMATIC_MODE_OPTIONS = {
-    eui_player = { "context_hover", "target_hover", "combat_hover", "combat", "hover", "untouched" },
-    eui_target = { "context_hover", "target_hover", "combat_hover", "combat", "hover", "untouched" },
-    eui_main = { "combat_hover", "combat", "hover", "untouched" },
-    eui_castbar = { "casting", "combat_hover", "combat", "hover", "untouched" },
-    eui_resourcebars = { "combat", "combat_hover", "hover", "untouched" },
-    minimap = { "hover", "untouched" },
-    objectives = { "quest_hover", "hover", "untouched" },
-    chat = { "typing_only", "untouched" },
-}
 
 local function BindingText(getter)
     local key = getter and getter(ns)
@@ -2216,152 +2199,6 @@ function ns:RefreshCinematicEditorControls()
     controls.letterboxToggle:GetFontString():SetTextColor(unpack(enabled and CINEMATIC_ACCENT or C.muted))
 end
 
-function ns:CreateCinematicModePicker()
-    if self.CinematicModePicker then return end
-    local blocker = CreateFrame("Button", nil, self.Options, "BackdropTemplate")
-    blocker:SetAllPoints(self.Options); blocker:SetFrameLevel(606); blocker:EnableMouse(true); blocker:RegisterForClicks("AnyUp")
-    blocker:SetScript("OnClick", function() if ns.CinematicModePicker then ns.CinematicModePicker:Hide() end end)
-    Backdrop(blocker, { 0, 0, 0, 0.38 }, { 0, 0, 0, 0 }); blocker:Hide()
-    local picker = CreateFrame("Frame", "FrameGambitCinematicModes", self.Options, "BackdropTemplate")
-    picker:SetSize(300, 250); picker:SetFrameStrata("FULLSCREEN_DIALOG"); picker:SetFrameLevel(607); picker:EnableMouse(true)
-    Backdrop(picker, C.panel, C.accent); picker:Hide(); picker.blocker = blocker; picker.buttons = {}; self.CinematicModePicker = picker
-    ApplyEUIObject("panel", picker, { inset = true })
-    table.insert(UISpecialFrames, picker:GetName())
-    picker.title = Text(picker, "GameFontNormal", "", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
-    picker.copy = Text(picker, "GameFontHighlightSmall", "Choose when this frame appears in Cinematic.", C.muted); picker.copy:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -4); picker.copy:SetPoint("RIGHT", -14, 0); picker.copy:SetJustifyH("LEFT"); picker.copy:SetWordWrap(true)
-    picker.close = CloseButton(picker); picker.close:SetPoint("TOPRIGHT", -9, -9)
-    picker:SetScript("OnHide", function() picker.blocker:Hide(); picker.component = nil end)
-end
-
-function ns:OpenCinematicModePicker(component)
-    self:CreateCinematicModePicker()
-    local picker = self.CinematicModePicker
-    picker.component = component
-    picker.confirmMode = nil
-    picker.copy:SetText("Choose when this frame appears in Cinematic."); picker.copy:SetTextColor(unpack(C.muted))
-    picker.title:SetText(component.label)
-    for _, button in ipairs(picker.buttons) do button:Hide() end
-    local current = self:GetCinematicComponentMode(component.id)
-    for index, mode in ipairs(CINEMATIC_MODE_OPTIONS[component.id] or {}) do
-        local modeID = mode
-        local button = picker.buttons[index]
-        if not button then button = Button(picker, "", 264, nil); picker.buttons[index] = button end
-        local selected = modeID == current
-        button:Show(); button:ClearAllPoints(); button:SetPoint("TOPLEFT", 18, -65 - (index - 1) * 31)
-        button._selected, button._selectedColor = selected, C.teal
-        SetFallbackBackdrop(button, selected and C.teal or C.cardAlt)
-        button:GetFontString():SetText(ns.CINEMATIC_MODE_LABELS[modeID]); button:GetFontString():SetTextColor(unpack(SelectedButtonText(button, selected, C.accent)))
-        button:SetScript("OnClick", function()
-            if current == "custom" and picker.confirmMode ~= modeID then
-                picker.confirmMode = modeID
-                picker.copy:SetText("This replaces your custom rules. Click the same choice again to confirm.")
-                picker.copy:SetTextColor(unpack(C.amber))
-                return
-            end
-            local ok, reason = ns:SetCinematicComponentMode(component.id, modeID)
-            if ok then picker:Hide(); ns:RenderCinematicOptions() else picker.copy:SetText(reason); picker.copy:SetTextColor(unpack(C.amber)) end
-        end)
-    end
-    picker:ClearAllPoints(); picker:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
-    self:HideAppearancePicker(); picker.blocker:Show(); picker:Show()
-end
-
-function ns:CreateCinematicOptions()
-    if self.CinematicOptions then return end
-    local page = CreateFrame("Frame", "FrameGambitCinematicOptions", self.Options, "BackdropTemplate")
-    page:SetPoint("TOPLEFT", self.Options, "TOPLEFT", 12, -86); page:SetPoint("BOTTOMRIGHT", self.Options, "BOTTOMRIGHT", -12, 48)
-    Backdrop(page, C.card); page:Hide(); self.CinematicOptions = page
-    ApplyEUIObject("panel", page, { inset = true })
-    page.title = Text(page, "GameFontNormalLarge", "Cinematic Mode", C.accent); page.title:SetPoint("TOPLEFT", 16, -14)
-    page.copy = Text(page, "GameFontHighlightSmall", "A cleaner view with its own frame rules.", C.muted); page.copy:SetPoint("TOPLEFT", page.title, "BOTTOMLEFT", 0, -4)
-    page.toggle = Button(page, "", 106, function()
-        local ok, reason = ns:ToggleCinematic(true)
-        page.status:SetText(ok and (ns:IsCinematicActive() and "Cinematic Mode on." or "Returned to your previous profile.") or reason)
-        page.status:SetTextColor(unpack(ok and C.teal or C.amber)); ns:RenderCinematicOptions()
-    end, true); page.toggle:SetPoint("TOPRIGHT", -16, -15)
-    page.shortcut = Button(page, "", 138, function() ns:OpenCinematicKeyCapture() end); page.shortcut:SetPoint("TOPRIGHT", page.toggle, "BOTTOMLEFT", 0, -7)
-    page.clear = Button(page, "Clear", 48, function()
-        local ok, reason = ns:SetCinematicBinding(nil)
-        page.status:SetText(ok and "Cinematic shortcut cleared." or reason); page.status:SetTextColor(unpack(ok and C.teal or C.amber)); ns:RenderCinematicOptions()
-    end); page.clear:SetPoint("RIGHT", page.shortcut, "LEFT", -6, 0)
-    local settings = CreateFrame("Frame", nil, page, "BackdropTemplate"); settings:SetPoint("TOPLEFT", 16, -79); settings:SetPoint("TOPRIGHT", -16, -79); settings:SetHeight(178); Backdrop(settings, C.cardAlt, C.border); page.settings = settings
-    ApplyEUIObject("panel", settings, { inset = true })
-    local settingsTitle = Text(settings, "GameFontNormal", "Cinematic settings", C.teal); settingsTitle:SetPoint("TOPLEFT", 12, -11)
-    local settingsCopy = Text(settings, "GameFontHighlightSmall", "Edit frame rules in the Cinematic profile. These controls set the shortcut and black bars.", C.muted); settingsCopy:SetPoint("TOPLEFT", settingsTitle, "BOTTOMLEFT", 0, -5); settingsCopy:SetPoint("RIGHT", -12, 0); settingsCopy:SetJustifyH("LEFT"); settingsCopy:SetWordWrap(true)
-    local editLabel = Text(settings, "GameFontHighlightSmall", "Frame visibility", C.accent); editLabel:SetPoint("BOTTOMLEFT", 12, 68)
-    page.advanced = Button(settings, "Edit Cinematic profile", 164, function()
-        if not ns:IsCinematicActive() then
-            local ok, reason = ns:ToggleCinematic(true)
-            if not ok then
-                page.status:SetText(reason or "Cinematic Mode could not be enabled for editing."); page.status:SetTextColor(unpack(C.amber))
-                return
-            end
-        end
-        ns:CloseCinematicOptions()
-    end)
-    page.advanced:SetPoint("LEFT", editLabel, "RIGHT", 14, 0)
-    SetTooltip(page.advanced, "Edit Cinematic profile", "Open its frame rules. Cinematic turns on first if needed.")
-    page.letterboxLabel = Text(settings, "GameFontHighlightSmall", "Black bars 4%", C.muted)
-    page.letterboxLabel:SetPoint("BOTTOMLEFT", 12, 25)
-    page.letterboxToggle = Button(settings, "Off", 54, function()
-        local enabled = ns:GetCinematicLetterboxSettings()
-        ns:SetCinematicLetterboxEnabled(not enabled)
-        ns:RenderCinematicOptions()
-    end)
-    page.letterboxToggle:SetPoint("BOTTOMRIGHT", -10, 16)
-    SetTooltip(page.letterboxToggle, "Cinematic black bars", "Add non-interactive bars at the top and bottom of the screen.")
-    page.letterboxSlider = CreateFrame("Slider", nil, settings, "BackdropTemplate")
-    page.letterboxSlider:SetPoint("LEFT", page.letterboxLabel, "RIGHT", 10, 0)
-    page.letterboxSlider:SetPoint("RIGHT", page.letterboxToggle, "LEFT", -10, 8)
-    page.letterboxSlider:SetHeight(10)
-    page.letterboxSlider:SetOrientation("HORIZONTAL")
-    page.letterboxSlider:SetMinMaxValues(0, 0.25)
-    page.letterboxSlider:SetValueStep(0.01)
-    page.letterboxSlider:SetObeyStepOnDrag(true)
-    Backdrop(page.letterboxSlider, C.card, C.border)
-    local letterboxThumb = page.letterboxSlider:CreateTexture(nil, "OVERLAY")
-    letterboxThumb:SetSize(10, 18); letterboxThumb:SetColorTexture(unpack(CINEMATIC_ACCENT))
-    page.letterboxSlider:SetThumbTexture(letterboxThumb)
-    if ns.LegacySkin then ns.LegacySkin:Slider(page.letterboxSlider) end
-    page.letterboxSlider:SetScript("OnValueChanged", function(_, value)
-        value = math.floor(value * 100 + 0.5) / 100
-        page.letterboxLabel:SetText("Black bars " .. math.floor(value * 100 + 0.5) .. "%")
-        if not page.letterboxApplying then ns:SetCinematicLetterboxHeight(value) end
-    end)
-    page.status = Text(page, "GameFontHighlightSmall", "", C.muted); page.status:SetPoint("BOTTOMLEFT", 16, 16); page.status:SetPoint("RIGHT", -120, 16); page.status:SetJustifyH("LEFT")
-    page.reset = Button(page, "Reset defaults", 106, function()
-        if not page.resetArmed then
-            page.resetArmed = true; page.resetToken = (page.resetToken or 0) + 1; local token = page.resetToken; page.reset:GetFontString():SetText("Confirm reset")
-            page.status:SetText("This replaces all Cinematic settings. Click Confirm reset to continue."); page.status:SetTextColor(unpack(C.amber))
-            C_Timer.After(5, function()
-                if page.resetToken == token then page.resetArmed = nil; page.reset:GetFontString():SetText("Reset defaults") end
-            end)
-            return
-        end
-        page.resetArmed = nil; page.resetToken = (page.resetToken or 0) + 1; page.reset:GetFontString():SetText("Reset defaults")
-        ns:ResetCinematicProfile(); page.status:SetText("Cinematic defaults restored."); page.status:SetTextColor(unpack(C.teal)); ns:RenderCinematicOptions()
-    end); page.reset:SetPoint("BOTTOMRIGHT", -14, 12)
-    page:SetScript("OnHide", function() page.resetArmed = nil; page.resetToken = (page.resetToken or 0) + 1; page.reset:GetFontString():SetText("Reset defaults") end)
-end
-
-function ns:OpenCinematicOptions()
-    self:CreateOptions()
-    self:HideAppearancePicker()
-    if not self:IsCinematicActive() then
-        local ok, reason = self:ToggleCinematic(true)
-        if not ok then self:ShowEditorNotice(reason or "Cinematic Mode could not be enabled.", "amber") end
-    end
-    self:RenderOptions()
-end
-
-function ns:CloseCinematicOptions()
-    if self.CinematicOptions then self.CinematicOptions:Hide() end
-    self:RenderOptions()
-end
-
-function ns:RenderCinematicOptions()
-    self:RenderOptions()
-end
 
 function ns:CreateTargetDrag()
     if self.TargetDrag then return end
@@ -2512,7 +2349,6 @@ function ns:LayoutReactionDragRows(drag)
     local destination = drag.insertIndex or drag.sourceIndex
     if destination > drag.sourceIndex then destination = destination - 1 end
     destination = math.max(1, math.min(count, destination))
-    drag.destination = destination
 
     -- Lay out every non-dragged row as the final order would read, leaving a
     -- card-sized gap for the visual row travelling under the cursor.
@@ -2602,7 +2438,7 @@ function ns:CancelReactionDrag(skipRender)
     local targetID, row = drag.targetID, drag.row
     if row then row:SetAlpha(drag.rowAlpha or 1) end
     drag.active, drag.targetID, drag.reaction, drag.row = nil, nil, nil, nil
-    drag.sourceIndex, drag.insertIndex, drag.destination = nil, nil, nil
+    drag.sourceIndex, drag.insertIndex = nil, nil
     drag.rowAlpha, drag.grabX, drag.grabY, drag.rowWidth = nil, nil, nil, nil
     drag:SetScript("OnUpdate", nil)
     drag.ghost:Hide(); drag:Hide()
@@ -2630,83 +2466,6 @@ function ns:FinishReactionDrag()
     if self.Options and self.Options:IsVisible() and self.Options.selected == targetID then self:RenderSelectedTarget(targetID) end
 end
 
-function ns:CreatePreview()
-    if self.Preview then return end
-    local preview = CreateFrame("Frame", "FrameGambitPreview", UIParent)
-    preview:SetAllPoints(UIParent); preview:SetFrameStrata("FULLSCREEN_DIALOG"); preview:SetFrameLevel(880)
-    preview:EnableMouse(false); preview:Hide(); preview.outlines, preview.token = {}, 0
-    self.Preview = preview
-end
-
-function ns:StopPreview()
-    local preview = self.Preview
-    if not preview then return end
-    preview.token = preview.token + 1
-    for _, outline in ipairs(preview.outlines) do outline:Hide() end
-    preview:Hide()
-end
-
-function ns:PreviewTarget(id)
-    if InCombatLockdown() then
-        if self.Options and self.Options.active then
-            self.Options.active:SetText("Preview is unavailable during combat")
-            self.Options.active:SetTextColor(unpack(C.amber))
-        end
-        return
-    end
-    if not self.TargetByID[id] then return end
-    self:CreatePreview()
-    local preview = self.Preview
-    self:StopPreview()
-    local kinds = { [id] = "selected" }
-    local _, group = self:GetRevealGroup(id)
-    for memberID in pairs(group and group.members or {}) do kinds[memberID] = memberID == id and "selected" or "group" end
-    for childID in pairs(self:GetLinkedChildren(id)) do kinds[childID] = "child" end
-    for _, parentID in ipairs(self:GetLinkParents(id)) do
-        if not kinds[parentID] then kinds[parentID] = "parent" end
-    end
-    local visible, total = 0, 0
-    local tones = { selected = C.accent, group = C.teal, child = C.teal, parent = C.amber }
-    for _, target in ipairs(self.Targets) do
-        local kind = kinds[target.id]
-        if kind then
-            total = total + 1
-            local frame = self:ResolveTarget(target.id)
-            local left, bottom, width, height
-            if frame then left, bottom, width, height = self:GetUsableFrameRect(frame) end
-            if left then
-                visible = visible + 1
-                local outline = preview.outlines[visible]
-                if not outline then
-                    outline = CreateFrame("Frame", nil, preview, "BackdropTemplate")
-                    Backdrop(outline, { 0, 0, 0, 0 }, tones[kind] or C.teal)
-                    preview.outlines[visible] = outline
-                end
-                outline:SetBackdropBorderColor(unpack(tones[kind] or C.teal))
-                outline:ClearAllPoints(); outline:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left - 3, bottom - 3)
-                outline:SetSize(width + 6, height + 6); outline:Show()
-            end
-        end
-    end
-    if visible == 0 then
-        if self.Options and self.Options.active then
-            self.Options.active:SetText("No visible frame is available to preview")
-            self.Options.active:SetTextColor(unpack(C.amber))
-        end
-        return
-    end
-    preview:Show()
-    local token = preview.token
-    C_Timer.After(2.2, function()
-        if ns.Preview == preview and preview.token == token then ns:StopPreview() end
-    end)
-    if self.Options and self.Options.active then
-        local label = visible == 1 and "frame" or "frames"
-        local missing = total - visible
-        self.Options.active:SetText("Previewing " .. visible .. " " .. label .. " for 2 seconds" .. (missing > 0 and " (" .. missing .. " unavailable)" or ""))
-        self.Options.active:SetTextColor(unpack(C.teal))
-    end
-end
 
 function ns:CreateProfilePicker()
     if self.ProfilePicker then return end
@@ -3961,18 +3720,18 @@ function ns:CreateOpacityPicker()
         picker.apply(value); picker:UpdateVisuals(value)
     end)
     picker:SetScript("OnHide", function()
-        picker.blocker:Hide(); picker.apply = nil; picker.valueTarget = nil; picker.keepOption = nil
+        picker.blocker:Hide(); picker.apply = nil; picker.keepOption = nil
     end)
 end
 
 -- keepOption (optional): { get = function() return bool end, set = function(bool) end }.
 -- Adds a Keep opacity switch; set may return false, message to refuse.
-function ns:OpenOpacityPicker(label, value, apply, valueTarget, keepOption)
+function ns:OpenOpacityPicker(label, value, apply, keepOption)
     self:CreateOpacityPicker()
     local picker = self.OpacityPicker
     picker.title:SetText(label)
     picker.value:SetText(Percent(value))
-    picker.apply, picker.valueTarget, picker.keepOption = apply, valueTarget, keepOption
+    picker.apply, picker.keepOption = apply, keepOption
     picker.keep:SetShown(keepOption ~= nil)
     picker.note:SetText("")
     picker:SetHeight(keepOption and 172 or 148)
@@ -4465,7 +4224,6 @@ function ns:RenderTargetRail()
     local query = (panel.targetQuery or ""):match("^%s*(.-)%s*$"):lower()
     local profileTargets = self:Profile().targets
     ClearChildren(panel.targetContent)
-    panel.tutorialSelectedRow = nil
     panel.tutorialTargetRow = nil
     panel.targetContent._targetRows = panel.targetContent._targetRows or {}
     local orderedTargets, depthByID = {}, {}
@@ -4532,7 +4290,6 @@ function ns:RenderTargetRail()
             row:SetWidth(math.max(1, panel.targetScroll:GetWidth() - indent))
             row:Show(); row:ClearAllPoints(); row:SetPoint("TOPLEFT", indent, -y); y = y + 27
             row._primary = chosen
-            if chosen then panel.tutorialSelectedRow = row end
             if targetID == tutorialID then panel.tutorialTargetRow = row end
             row._targetID, row._managed = targetID, isManaged
             SetFallbackBackdrop(row, chosen and C.accent or C.cardAlt, C.border)
@@ -4744,7 +4501,6 @@ function ns:RenderSelectedTarget(id)
     -- or where saved rules already use them (so they can be turned off).
     local layoutSupported = ns.GetFrameLayoutSupport and ns:GetFrameLayoutSupport(id) or false
     local layoutAvailable = layoutSupported or (ns.TargetUsesLayout and ns:TargetUsesLayout(settings)) or false
-    panel.liveLayoutTargetID = nil
     panel.liveReactionTargetID, panel.liveReactionIndex = id, activeReactionIndex
     panel.reactionContent._reactionRows = panel.reactionContent._reactionRows or {}
     for index, reaction in ipairs(settings.reactions) do
@@ -4880,7 +4636,7 @@ function ns:RenderSelectedTarget(id)
                 reactionData.keepOpacity = nil
                 ns:InvalidateTargetTransition(id)
                 row.opacity:GetFontString():SetText(Percent(value))
-            end, row.opacity, keepOption)
+            end, keepOption)
         end)
         if layoutAvailable and reactionData.keepOpacity then row.opacity:GetFontString():SetText("Keep") end
         SetRequirementButtonLabel(row.requirements, requirementCount > 0 and "+" .. requirementCount or "+")
@@ -4947,7 +4703,7 @@ function ns:RenderSelectedTarget(id)
             settings.atRest = value
             ns:InvalidateTargetTransition(id)
             restOpacity:GetFontString():SetText(Percent(value))
-        end, restOpacity)
+        end)
     end)
     restOpacity:SetEnabled(not visibilityParent)
     restOpacity:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -5311,7 +5067,6 @@ function ns:CreatePicker()
         if wasCinematicKeep then
             ns.runtime.cinematicPickerReveal = nil
             if ns:IsCinematicActive() then
-                if not InCombatLockdown() then ns:SetCinematicUIMode(ns:CanUseCinematicNativeMode()) end
                 ns:UpdateCinematicBlackout()
             end
         end
@@ -5332,7 +5087,6 @@ function ns:StartPicker(intent)
     self:CreatePicker()
     if intent == "cinematic_keep" and self:IsCinematicActive() then
         self.runtime.cinematicPickerReveal = true
-        self:SetCinematicUIMode(false)
         self:UpdateCinematicBlackout()
     end
     self.Picker.mode, self.Picker.intent, self.Picker.candidates, self.Picker.index = "atlas", intent or "target", {}, 0
@@ -5577,11 +5331,6 @@ function ns:UsePickedTarget()
         picker.exitReason = "used"
         picker:Hide()
         if self.Options then self.Options:Show() end
-        if self.CinematicOptions and self.CinematicOptions:IsShown() then
-            self.CinematicOptions.status:SetText(reason)
-            self.CinematicOptions.status:SetTextColor(unpack(C.teal))
-            self:RenderCinematicOptions()
-        end
         return
     end
     local targetID = candidate and candidate.id

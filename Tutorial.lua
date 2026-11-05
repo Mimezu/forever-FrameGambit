@@ -187,9 +187,6 @@ end
 local function FindControl(kind)
     local panel = ns.Options
     if not panel then return nil end
-    if kind == "targets" then return panel.targets end
-    if kind == "pick" then return panel.pickButton or panel.targets end
-    if kind == "selected" then return panel.tutorialSelectedRow or panel.targets end
     if kind == "tutorial_target" then return panel.tutorialTargetRow or panel.targets end
     if kind == "tutorial_use" then
         -- Once the player has clicked Use this frame, that button is gone.
@@ -226,7 +223,6 @@ local function FindControl(kind)
         return nil
     end
     if kind == "otherwise" then return panel.otherwiseRow end
-    if kind == "filter" then return panel.targetFilter end
     if kind == "outline" then return panel.outlineButton or (panel.selectionOutlineEnabled and ns.SelectionOutline) end
     if kind == "cinematic" then return panel.cinematic end
     if kind == "tutorial_frame" then return ns.TutorialPracticeFrame end
@@ -627,6 +623,6 @@ function ns:OnTutorialCombatStateChanged(inCombat)
         tutorial.paused = true; tutorial.hidingForCombat = true; ClearOutline(); ClearSpotlight()
         card:Hide()
     elseif tutorial.paused then
-        tutorial.paused = false; tutorial.hidingForCombat = false; card:Show(); card.next:Show(); card.skip:GetFontString():SetText("Skip"); ns:RefreshTutorial()
+        tutorial.paused = false; tutorial.hidingForCombat = false; card:Show(); ns:RefreshTutorial()
     end
 end

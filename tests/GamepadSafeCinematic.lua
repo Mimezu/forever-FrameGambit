@@ -71,7 +71,6 @@ FrameGambitDB = { profile = "Default", profiles = { Default = {}, ["Cinematic Mo
 ns.EnsureCinematicProfile = function() return "Cinematic Mode" end
 ns.SelectProfile = function(_, name) FrameGambitDB.profile = name; return true end
 ns.PrimeCinematicTargets = function() end
-ns.SetCinematicUIMode = function() return true end
 local blackouts = 0
 local realBlackout = ns.BeginCinematicBlackout
 ns.BeginCinematicBlackout = function() blackouts = blackouts + 1; return true end

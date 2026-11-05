@@ -60,7 +60,6 @@ FrameGambitDB = { profile = "Default", cinematic = { profileName = "Cinematic Mo
 -- Stub only UI/event setup; use real target leases, profile switches and blackout.
 ns.Wake = function() end
 ns.RefreshOptions = function() end
-ns.SetCinematicUIMode = function() return true end
 ns.BuildStateContext = function() end
 ns.UpdateHover = function() end
 ns.EnsureCinematicProfile = function() return "Cinematic Mode", FrameGambitDB.profiles["Cinematic Mode"] end

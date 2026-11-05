@@ -1,5 +1,11 @@
 # Frame Gambit changelog
 
+## 1.2.3 - Dead code removed
+
+- Removed the unused Cinematic "native UI mode" (a Blizzard UIModeManager registration that was always switched off) together with its login registration and per-tick calls. Leaving a Cinematic profile still refuses in combat as before.
+- Removed the unreachable Cinematic Mode page and its per-frame mode picker from the editor (the header's Cinematic controls are the only UI; they are unchanged), and the unused frame preview helper.
+- Tidied unused editor fields and parameters (opacity picker value target, reaction drag destination, tutorial row bookkeeping, bundled-skin hooks nothing read). No saved setting changes; nothing in saved data is read by the removed paths.
+
 ## 1.2.2 - Build 70707 review
 
 - Checked every Blizzard frame name, mixin field, event and function the addon uses against the 70532 UI source (70338 -> 70532 diff). Nothing it relies on was removed or renamed; the minimap, gamepad action bar, chat and Edit Mode changes in that range do not touch the paths Frame Gambit uses.

@@ -14,7 +14,7 @@ assert(loadfile(root .. "/Core.lua"))("FrameGambit", ns)
 -- Isolate the editor's startup lifecycle from gameplay adapters. Execute the
 -- real login handler; a hidden editor must not allocate frames or skin art.
 for _, name in ipairs({ "MigrateDatabase", "MigrateLegacyCinematicBinding", "EnsureCinematicProfile",
-    "RegisterCinematicUIMode", "EnsureConnectedHoverRules", "RefreshInputModeProfile", "Wake" }) do ns[name] = function() end end
+    "EnsureConnectedHoverRules", "RefreshInputModeProfile", "Wake" }) do ns[name] = function() end end
 ns.IsCinematicActive = function() return false end
 local builds, renders = 0, 0
 ns.CreateOptions = function(self)

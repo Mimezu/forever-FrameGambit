@@ -270,7 +270,7 @@ function ns:IsFrameGambitFrame(frame)
     if not frame then return false end
     local current, seen = frame, {}
     while current and not seen[current] do
-        if current == self.Options or current == self.Picker or current == self.CinematicOptions
+        if current == self.Options or current == self.Picker
             or current == self.SelectionOutline
             or current == self.HelpCenter or current == self.TutorialCard or current == self.TutorialOutline
             or current == self.PeekBar

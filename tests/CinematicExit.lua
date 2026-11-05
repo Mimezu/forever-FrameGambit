@@ -28,7 +28,6 @@ FrameGambitDB = { profile = "Cinematic Mode", cinematic = { profileName = "Cinem
 UnitExists = function(unit) return unit == "player" end
 UnitHealth, UnitHealthMax = function() return 40 end, function() return 100 end
 ns.Wake, ns.RefreshOptions = function() end, function() end
-ns.SetCinematicUIMode = function() return true end
 local contextCount, hoverCount = 0, 0
 local build = ns.BuildStateContext
 ns.BuildStateContext = function(self) contextCount = contextCount + 1; return build(self) end

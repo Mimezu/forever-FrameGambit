@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.2.2"
+ns.VERSION = "1.2.3"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
@@ -1091,19 +1091,6 @@ local CINEMATIC_MODE_CONDITIONS = {
     quest_hover = { "alt", "mouseover", "quest_update", "quest_accepted", "quest_turned_in", "quest_objective" },
     loot_hover = { "alt", "mouseover", "loot", "loot_opened" },
 }
-ns.CINEMATIC_MODE_LABELS = {
-    untouched = "Untouched",
-    typing_only = "While typing",
-    context_hover = "Combat, target + hover",
-    target_hover = "Target + hover",
-    combat_hover = "Combat + hover",
-    combat = "Combat only",
-    casting = "Casting only",
-    hover = "Hover only",
-    quest_hover = "Quest + hover",
-    loot_hover = "Loot + hover",
-    custom = "Custom rules",
-}
 
 local function NewCinematicSettings(profile, mode, rest, nativeMarkerMode)
     local conditions = CINEMATIC_MODE_CONDITIONS[mode]
@@ -1270,49 +1257,6 @@ local CINEMATIC_LOCKED_NAMES = {
     GameMenuFrame = true,
     SettingsPanel = true,
 }
-
-local CINEMATIC_UI_MODE = "FrameGambit.Cinematic"
-local CINEMATIC_UI_ROLES = {
-    "actionBars",
-    "arenaFrames",
-    "buffs",
-    "chat",
-    "cooldownViewers",
-    "encounterUI",
-    "extraAbilities",
-    "microMenu",
-    "objectives",
-    "pvp",
-    "statusBars",
-    "swingTimers",
-    "queuestatus",
-    "widgets",
-}
-
-function ns:RegisterCinematicUIMode()
-    if runtime.cinematicUIModeRegistered then return true end
-    if not UIModeUtil or type(UIModeUtil.RegisterMode) ~= "function" or type(UIModeUtil.SetModeActive) ~= "function" then
-        runtime.cinematicUIModeAvailable = false
-        return true
-    end
-    local ok = pcall(UIModeUtil.RegisterMode, CINEMATIC_UI_MODE, { rolesetBlocklist = CINEMATIC_UI_ROLES })
-    if not ok then return false, "WoW could not prepare Cinematic Mode." end
-    runtime.cinematicUIModeRegistered = true
-    runtime.cinematicUIModeAvailable = true
-    return true
-end
-
-function ns:SetCinematicUIMode(active)
-    if InCombatLockdown() then return false, "Toggle Cinematic Mode outside combat." end
-    local ok, reason = self:RegisterCinematicUIMode()
-    if not ok then return false, reason end
-    if not runtime.cinematicUIModeAvailable then return true end
-    if runtime.cinematicUIModeActive == (active == true) then return true end
-    local changed = pcall(UIModeUtil.SetModeActive, CINEMATIC_UI_MODE, active == true)
-    if not changed then return false, "WoW could not change Cinematic Mode." end
-    runtime.cinematicUIModeActive = active == true
-    return true
-end
 
 local function SafeFrameName(frame)
     if not frame then return nil end
@@ -1670,7 +1614,6 @@ function ns:KeepCinematicFrame(frame)
         runtime.cinematicKeepFrames[visual] = true
     end
     self:RefreshCinematicExemptions()
-    if self:IsCinematicActive() and not InCombatLockdown() then self:SetCinematicUIMode(false) end
     self:UpdateCinematicBlackout(true)
     return true, name and "This frame will stay visible in Cinematic Mode." or "This unnamed frame will stay visible until you reload."
 end
@@ -1688,14 +1631,6 @@ function ns:GetCinematicKeepCount()
     for _ in pairs(FrameGambitDB and FrameGambitDB.cinematic and FrameGambitDB.cinematic.keepNames or {}) do count = count + 1 end
     for _ in pairs(runtime.cinematicKeepFrames or {}) do count = count + 1 end
     return count
-end
-
-function ns:CanUseCinematicNativeMode()
-    -- Native role suppression prevents some Blizzard panels from ever reaching
-    -- their normal OnShow path. The guarded alpha ledger is already the
-    -- reversible Cinematic owner, so keep native role suppression off and let
-    -- all player-opened Blizzard panels be recognized and restored live.
-    return false
 end
 
 local function SetCinematicFrameAlpha(frame, alpha)
@@ -1849,14 +1784,13 @@ function ns:ReconcileCinematicOwnership()
     if not self:IsCinematicActive() then return end
     self:RefreshCinematicExemptions()
     -- Release anything that just became an explicit rule-owned exception,
-    -- then update the native role layer and acquire newly unowned branches in
-    -- the same synchronous editor mutation.
+    -- then acquire newly unowned branches in the same synchronous editor
+    -- mutation.
     self:UpdateCinematicBlackout(true)
     if InCombatLockdown() then
         runtime.cinematicScanPending = true
         return
     end
-    self:SetCinematicUIMode(self:CanUseCinematicNativeMode())
     self:BeginCinematicBlackout()
 end
 
@@ -1877,51 +1811,6 @@ function ns:EndCinematicBlackout()
     runtime.cinematicAuditAt = 0
     runtime.cinematicRevealActive = nil
     runtime.cinematicOpenWindows = setmetatable({}, { __mode = "k" })
-end
-
-function ns:GetCinematicComponentMode(id)
-    local settings = self:GetCinematicProfile().targets[id]
-    if not settings then return "untouched" end
-    local component
-    for _, candidate in ipairs(CINEMATIC_COMPONENTS) do if candidate.id == id then component = candidate; break end end
-    if not component or math.abs((settings.atRest or 0) - component.rest) > 0.0001
-        or math.abs((settings.fadeInDuration or settings.fadeDuration or 0) - 0.25) > 0.0001
-        or math.abs((settings.fadeOutDuration or settings.fadeDuration or 0) - 0.25) > 0.0001
-        or math.abs((settings.fadeDelay or 0) - 0.35) > 0.0001 then return "custom" end
-    local conditions = CINEMATIC_MODE_CONDITIONS[settings.cinematicMode]
-    if not conditions or type(settings.reactions) ~= "table" or #settings.reactions ~= #conditions then return "custom" end
-    for index, condition in ipairs(conditions) do
-        local reaction = settings.reactions[index]
-        if not reaction or reaction.condition ~= condition or reaction.opacity ~= 1 or #(reaction.requirements or {}) > 0 then return "custom" end
-        local info = CONDITION_INFO[condition]
-        if info and info.kind == "moment" and math.abs((reaction.duration or info.duration or 3) - (info.duration or 3)) > 0.0001 then return "custom" end
-    end
-    return settings.cinematicMode
-end
-
-function ns:SetCinematicComponentMode(id, mode)
-    local profile = self:GetCinematicProfile()
-    local component
-    for _, candidate in ipairs(CINEMATIC_COMPONENTS) do if candidate.id == id then component = candidate; break end end
-    if not component then return false, "That frame is not available in Cinematic Mode." end
-    if mode == "untouched" then
-        if self:IsCinematicActive() then self:RemoveTarget(id) else profile.targets[id] = nil end
-    elseif CINEMATIC_MODE_CONDITIONS[mode] then
-        local markerMode = id == "minimap" and profile.targets[id]
-            and profile.targets[id].nativeMarkerMode == "scale" and "scale"
-            or (id == "minimap" and "hide_zero" or nil)
-        profile.targets[id] = NewCinematicSettings(profile, mode, component.rest,
-            markerMode)
-    else
-        return false, "Choose one of the available modes."
-    end
-    if self:IsCinematicActive() then
-        if self.PrimeCinematicTargets then self:PrimeCinematicTargets() end
-        self:BeginCinematicBlackout()
-    end
-    self:Wake()
-    self:RefreshOptions()
-    return true
 end
 
 function ns:ResetCinematicProfile()
@@ -1992,12 +1881,6 @@ function ns:ToggleCinematic(keepOptionsOpen)
             self.Options.selected = nil
         end
         if self.PrimeCinematicTargets then self:PrimeCinematicTargets() end
-        local modeOK, modeReason = self:SetCinematicUIMode(self:CanUseCinematicNativeMode())
-        if not modeOK then
-            self:SelectProfile(db.cinematic.returnProfile or "Default", true)
-            db.cinematic.returnProfile = nil
-            return false, modeReason, false
-        end
         local scanned, scanReason = self:BeginCinematicBlackout()
         if not scanned and scanReason then reason = scanReason end
     end
@@ -2320,8 +2203,7 @@ function ns:SelectProfile(name, preserveCinematicReturn)
         return false, "The minimap is still restoring its opacity. Try switching again."
     end
     if self:IsCinematicActive() then
-        local modeOK, modeReason = self:SetCinematicUIMode(false)
-        if not modeOK then return false, modeReason end
+        if InCombatLockdown() then return false, "Toggle Cinematic Mode outside combat." end
         self:EndCinematicBlackout()
     end
     local ids = {}
@@ -4524,11 +4406,6 @@ function ns:Tick(elapsed)
         self:UpdateMinimapStack(rescan)
     end
     if self:IsCinematicActive() then
-        -- The explicit frame picker can temporarily reveal blacked-out roots.
-        if not InCombatLockdown() then
-            local reveal = runtime.cinematicPickerReveal or false
-            self:SetCinematicUIMode(self:CanUseCinematicNativeMode() and not reveal)
-        end
         if not InCombatLockdown() and now - (runtime.cinematicRootScanAt or 0) >= 2.5 then
             self:BeginCinematicBlackout()
         else
@@ -4942,7 +4819,6 @@ driver:SetScript("OnEvent", function(_, event, ...)
         if ns.RefreshCinematicLetterbox then ns:RefreshCinematicLetterbox() end
         if ns.RefreshCinematicCamera then ns:RefreshCinematicCamera() end
         if ns.RefreshOPieFrames then ns:RefreshOPieFrames() end
-        ns:RegisterCinematicUIMode()
         ns:EnsureConnectedHoverRules()
         RefreshPlayerCastingState()
         ns:Wake()
@@ -4951,7 +4827,6 @@ driver:SetScript("OnEvent", function(_, event, ...)
         ns:RefreshInputModeProfile(true)
         if ns:IsCinematicActive() then
             ns:PrimeCinematicTargets()
-            ns:SetCinematicUIMode(ns:CanUseCinematicNativeMode())
             ns:BeginCinematicBlackout()
         else
             -- Frames that already exist start in their rule state, not at
