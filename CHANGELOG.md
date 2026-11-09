@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.2.5 - Loot Rolls frame
+
+- New built-in frame "Loot Rolls": the group loot Need / Greed / Pass windows (Blizzard's GroupLootContainer). Add it from the frame list like any other built-in frame to give it fade rules, a size or a position. The game shows it only while a roll is open; it still stays visible in Cinematic mode as before.
+
 ## 1.2.4 - Clean screenshot key
 
 - New key "Screenshot without interface" (Key Bindings > Frame Gambit): hides the whole interface and nameplates (the Alt+Z switch), takes the game's own screenshot in the same frame, and brings everything back as soon as the game reports the picture saved. If the interface was already hidden with Alt+Z, it stays hidden.
