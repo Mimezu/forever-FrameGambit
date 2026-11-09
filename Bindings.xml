@@ -5,4 +5,7 @@
     <Binding name="FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA">
         FrameGambit_ToggleCinematicCamera()
     </Binding>
+    <Binding name="FRAMEGAMBIT_CLEAN_SCREENSHOT">
+        FrameGambit_CleanScreenshot()
+    </Binding>
 </Bindings>

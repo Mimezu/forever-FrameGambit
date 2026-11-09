@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.2.4 - Clean screenshot key
+
+- New key "Screenshot without interface" (Key Bindings > Frame Gambit): hides the whole interface and nameplates (the Alt+Z switch), takes the game's own screenshot in the same frame, and brings everything back as soon as the game reports the picture saved. If the interface was already hidden with Alt+Z, it stays hidden.
+
 ## 1.2.3 - Dead code removed
 
 - Removed the unused Cinematic "native UI mode" (a Blizzard UIModeManager registration that was always switched off) together with its login registration and per-tick calls. Leaving a Cinematic profile still refuses in combat as before.
