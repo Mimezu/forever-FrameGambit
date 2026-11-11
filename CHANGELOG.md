@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.2.6 - Durability frame
+
+- New built-in frame "Durability": Blizzard's damaged-gear armor figure (DurabilityFrame). Add it from the frame list to give it fade rules, a size or a position. The game shows it only while some equipped item is damaged or broken.
+
 ## 1.2.5 - Loot Rolls frame
 
 - New built-in frame "Loot Rolls": the group loot Need / Greed / Pass windows (Blizzard's GroupLootContainer). Add it from the frame list like any other built-in frame to give it fade rules, a size or a position. The game shows it only while a roll is open; it still stays visible in Cinematic mode as before.

@@ -67,6 +67,8 @@ ns.Targets = {
     { id = "talking_head", label = "Talking Head", source = "Blizzard", names = { "TalkingHeadFrame" }, protected = false },
     { id = "loot_rolls", label = "Loot Rolls", source = "Blizzard", names = { "GroupLootContainer" }, protected = false,
         capability = "All roll windows", capabilityTone = "teal", capabilityNote = "The Need / Greed / Pass windows fade, resize and move together. The game shows them only while a roll is open." },
+    { id = "durability", label = "Durability", source = "Blizzard", names = { "DurabilityFrame" }, protected = false,
+        capability = "Armor figure", capabilityTone = "teal", capabilityNote = "The damaged-gear armor figure. The game shows it only while some equipped item is damaged or broken." },
     { id = "timers", label = "Timers", source = "Blizzard", names = { "TimerTracker" }, protected = false },
     { id = "blizzard_damage_meter", label = "Blizzard Damage Meter", source = "Blizzard", names = { "DamageMeterSessionWindow1" }, protected = false,
         capability = "Whole window", capabilityTone = "teal", capabilityNote = "The complete Blizzard Damage Meter fades together. Its data and layout stay unchanged." },
@@ -415,6 +417,7 @@ local function PickerDisplayLabel(name)
     if type(name) ~= "string" then return nil end
     if name:match("CDMBar") or name:lower():match("cooldown") then return "Cooldown Bar" end
     if name == "ContainerFrameContainer" then return "Bag Windows" end
+    if name == "DurabilityFrame" then return "Durability" end
     if name == "GroupLootContainer" or name:match("^GroupLootFrame%d$") then return "Loot Rolls" end
     if name:match("GlobalFX.*ModelScene") or name:match("BackgroundModelScene") then return "Full-screen Visual Effect" end
     if name:match("ModelScene") then return "3D Visual Effect" end
