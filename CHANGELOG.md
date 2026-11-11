@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.2.7 - Showcase profile
+
+- New ready-made profile "Showcase": the author's own everyday layout (frames that rest faded and come back on mouseover, combat, targets, quests, chat typing and gamepad bars). It is added once beside your own profiles and is never selected for you; pick it from the profile list to try it. Delete or edit it freely, it will not come back.
+
 ## 1.2.6 - Durability frame
 
 - New built-in frame "Durability": Blizzard's damaged-gear armor figure (DurabilityFrame). Add it from the frame list to give it fade rules, a size or a position. The game shows it only while some equipped item is damaged or broken.

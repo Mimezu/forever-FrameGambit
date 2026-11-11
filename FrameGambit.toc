@@ -2,7 +2,7 @@
 ## Title: Frame Gambit
 ## Notes: Friendly, priority-based visibility gambits for your UI.
 ## Author: Mimezu
-## Version: 1.2.6
+## Version: 1.2.7
 ## SavedVariables: FrameGambitDB
 ## LoadSavedVariablesFirst: 1
 # Settings load through native SavedVariables.
@@ -12,6 +12,7 @@
 
 ForeverBugReporter.local.lua
 Core.lua
+ShowcaseProfile.lua
 PercentageOpacity.lua
 ExtraConditions.lua
 SuiteWindows.lua

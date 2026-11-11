@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.2.3"
+ns.VERSION = "1.2.7"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
@@ -2237,6 +2237,24 @@ function ns:SelectProfile(name, preserveCinematicReturn)
     end
     self:Wake()
     self:RefreshOptions()
+    return true
+end
+
+-- Offer the bundled Showcase profile once per account. It is added beside
+-- the player's own profiles (never selected for them); once seeded, deleting
+-- or renaming it is respected and it does not come back.
+function ns:EnsureShowcaseProfile()
+    local db = FrameGambitDB
+    local name, source = self.SHOWCASE_PROFILE_NAME, self.SHOWCASE_PROFILE
+    if type(db) ~= "table" or db.showcaseSeeded or type(name) ~= "string" or type(source) ~= "table" then return false end
+    db.showcaseSeeded = true
+    db.profiles = type(db.profiles) == "table" and db.profiles or {}
+    if FindProfileName(db, name) then return false end
+    db.customTargets = type(db.customTargets) == "table" and db.customTargets or {}
+    for id, definition in pairs(self.SHOWCASE_CUSTOM_TARGETS or {}) do
+        if db.customTargets[id] == nil then db.customTargets[id] = DeepCopy(definition) end
+    end
+    db.profiles[name] = DeepCopy(source)
     return true
 end
 
@@ -4814,6 +4832,7 @@ driver:SetScript("OnEvent", function(_, event, ...)
         ns:MigrateDatabase()
         if ns.ApplyAppearanceTheme then ns:ApplyAppearanceTheme(ns:GetAppearanceTheme()) end
         ns:MigrateLegacyCinematicBinding()
+        ns:EnsureShowcaseProfile()
         if ns.RegisterStoredCustomFrames then ns:RegisterStoredCustomFrames() end
         ns:EnsureCinematicProfile()
         if ns.RefreshCinematicLetterbox then ns:RefreshCinematicLetterbox() end
