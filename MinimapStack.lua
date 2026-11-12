@@ -700,9 +700,9 @@ end
 
 function ns:GetMinimapNativeMarkerAvailability(mode)
     local minimap = _G.Minimap
-    if not minimap then return false, "The native Minimap is not available." end
+    if not minimap then return false, "Minimap unavailable" end
     if not HasNativeMarkerSetter(minimap) then
-        return false, "This WoW build does not expose native marker scaling."
+        return false, "Not in this client"
     end
     -- Install the read-only post-hook even while leaving markers unchanged. If
     -- Blizzard or the owning UI later announces a scale, experimental modes
@@ -710,11 +710,11 @@ function ns:GetMinimapNativeMarkerAvailability(mode)
     HookNativeMarkers(minimap)
     if CaptureNativeMarkerHostScale(minimap) ~= nil then
         if nativeMarkerBaselineAssumed then
-            return true, "This WoW build cannot read the current native marker scale. Because an experimental marker mode is selected, Frame Gambit is using 100% as its restoration baseline until Blizzard or the owning UI announces another value."
+            return true, "Restores to 100%"
         end
         return true
     end
-    local note = "This WoW build cannot read the current native marker scale. Choosing an experimental marker mode will explicitly use 100% as its restoration baseline; Leave unchanged never writes it."
+    local note = "Restores to 100%"
     if mode == "hide_zero" or mode == "scale" then
         CaptureNativeMarkerHostScale(minimap, true)
     end

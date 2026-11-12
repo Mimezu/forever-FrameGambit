@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.2.8 - Shorter text
+
+- Every label, tooltip, message and error is now a few words. Tooltips that repeated a visible label are gone; descriptions stay only for limits and risks. Help topics and the tutorial are shorter. No settings change.
+
 ## 1.2.7 - Showcase profile
 
 - New ready-made profile "Showcase": the author's own everyday layout (frames that rest faded and come back on mouseover, combat, targets, quests, chat typing and gamepad bars). It is added once beside your own profiles and is never selected for you; pick it from the profile list to try it. Delete or edit it freely, it will not come back.

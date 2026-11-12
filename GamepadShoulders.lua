@@ -88,7 +88,7 @@ for _, entry in ipairs({ { "left", "Left" }, { "right", "Right" } }) do
         id = "gamepad_shoulder_" .. key, label = "Gamepad - " .. prefix .. " shoulder",
         source = "Blizzard", protected = true, skipManagedAlphaHook = true,
         capability = "Shoulder artwork", capabilityTone = "teal",
-        capabilityNote = "Fades the shoulder background, icon and highlight together. Blizzard keeps its navigation and pressed state.",
+        capabilityNote = "Opacity only",
         resolve = function()
             local root = _G.GamepadMainActionBarFrame
             local unit = root and root.PageUnit

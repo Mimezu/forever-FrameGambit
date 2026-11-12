@@ -220,7 +220,7 @@ target.release = function(frame)
 end
 target.skipManagedAlphaHook = true
 target.source = "Blizzard whole chat / Ellesmere Chat"
-target.capabilityNote = "All chat windows, including future whispers, tabs, input, dock and attached controls share one opacity. Native docking and styling are preserved."
+target.capabilityNote = "All chat windows together"
 
 local lifecycleHooks = {}
 local function Lifecycle()

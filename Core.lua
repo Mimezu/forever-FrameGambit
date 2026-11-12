@@ -1,15 +1,15 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.2.7"
+ns.VERSION = "1.2.8"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
 -- because this notification system was added or the addon was freshly installed.
 ns.HELP_CONTENT_VERSION = 4
 BINDING_HEADER_FRAMEGAMBIT = "Frame Gambit"
-BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC = "Toggle Frame Gambit Cinematic Mode"
-BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA = "Toggle Cinematic Camera Offset"
+BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC = "Cinematic Mode"
+BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA = "Cinematic camera"
 local CINEMATIC_BINDING = "FRAMEGAMBIT_TOGGLE_CINEMATIC"
 local CINEMATIC_CAMERA_BINDING = "FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA"
 local LEGACY_CINEMATIC_BINDING = "PRIORITYFADER_TOGGLE_CINEMATIC"
@@ -86,18 +86,18 @@ local DEFAULT_REACTIONS = {
 
 local CONDITION_INFO = {
     player_health = { label = "Health percentage", category = "character", kind = "state", percentage = true,
-        help = "Player health as a percentage. Choose a comparison and threshold. Uses the unrounded percentage. Unavailable health does not trigger this condition." },
+        help = nil },
     player_mana = { label = "Mana percentage", category = "character", kind = "state", percentage = true,
-        help = "Player mana as a percentage, even while another power type is active. Uses the unrounded percentage. Unavailable mana does not trigger this condition." },
+        help = nil },
     party_health = { label = "Health percentage", category = "party", kind = "state", percentage = true,
-        help = "Choose Any for the other party members, or a displayed party-frame slot (1-5), including your own. Checks health percentage; unavailable members and raids do not match." },
+        help = "Not in raids" },
     party_mana = { label = "Mana percentage", category = "party", kind = "state", percentage = true,
-        help = "Choose Any for the other party members, or a displayed party-frame slot (1-5), including your own. Checks mana percentage; unavailable members and raids do not match." },
+        help = "Not in raids" },
 
     chat_typing = { label = "Typing", category = "chat", kind = "state", pickerOrder = 1,
-        help = "While a chat input box has keyboard focus, including an empty message after pressing Enter. Ends when you send, cancel, or move focus away." },
+        help = nil },
     chat_text = { label = "Chat contains text", category = "chat", kind = "moment", pickerOrder = 2, duration = 10,
-        help = "A new message in any configured chat window contains your word or phrase. Case-insensitive, literal matching; each match restarts the duration." },
+        help = nil },
     mouseover = { label = "Mouseover", category = "system", kind = "state", pickerOrder = 1 },
     linked_parent_hover = { label = "Linked parent hover", category = "legacy", kind = "state", internal = true },
     combat = { label = "In combat", category = "character", kind = "state", pickerOrder = 1 },
@@ -133,8 +133,8 @@ local CONDITION_INFO = {
     pet_battle = { label = "Pet battle", category = "travel", kind = "state" },
     fishing = { label = "Fishing", category = "travel", kind = "state" },
 
-    class_pet = { label = "Class pet active", category = "pets", kind = "state" },
-    cosmetic_pet = { label = "Cosmetic companion active", category = "pets", kind = "state" },
+    class_pet = { label = "Class pet out", category = "pets", kind = "state" },
+    cosmetic_pet = { label = "Companion out", category = "pets", kind = "state" },
 
     group = { label = "In party", category = "social", kind = "state" },
     raid = { label = "In raid", category = "social", kind = "state" },
@@ -161,16 +161,16 @@ local CONDITION_INFO = {
     loot_opened = { label = "Loot window opened", category = "moment", kind = "moment", duration = 5 },
     xp_gained = { label = "XP gained", category = "moment", kind = "moment", duration = 5 },
     chat_private = { label = "New private message", category = "chat", kind = "moment", duration = 10,
-        help = "Incoming character or Battle.net whispers. Sent whispers do not trigger this. Each new message restarts the duration." },
+        help = nil },
     chat_guild = { label = "New guild message", category = "chat", kind = "moment", duration = 10,
-        help = "Guild and officer chat messages, including guild achievement announcements. Each new message restarts the duration." },
-    chat_group = { label = "New group or raid message", category = "chat", kind = "moment", duration = 10,
-        help = "Party, raid and instance chat, including leaders, raid warnings and achievements earned by current group members. Each new message restarts the duration." },
+        help = nil },
+    chat_group = { label = "New group message", category = "chat", kind = "moment", duration = 10,
+        help = nil },
     chat_general = { label = "New General chat message", category = "chat", kind = "moment", duration = 10,
-        help = "Messages in the zone's General channel only, excluding Trade, Say and Yell. Each new message restarts the duration." },
+        help = nil },
 
     chat_friend_status = { label = "Friend logs on or off", category = "chat", kind = "moment", duration = 10,
-        help = "Character friend and Battle.net friend login/logout notifications. Each notification restarts the duration." },
+        help = nil },
 
     cinematic_chat_input = { label = "Typing in chat", category = "legacy", kind = "state", internal = true },
 
@@ -1602,7 +1602,7 @@ function ns:KeepCinematicFrame(frame)
     end)
     if okVisual and resolvedVisual then visual = resolvedVisual end
     local root = self:GetFramePickerRoot(visual)
-    if not root then return false, "That frame cannot be kept safely." end
+    if not root then return false, "Frame not supported" end
     local owner = self.GetEUIUnitFrameOwner and self:GetEUIUnitFrameOwner(frame)
     local managed = owner or root
     local name = SafeFrameName(managed)
@@ -1615,7 +1615,7 @@ function ns:KeepCinematicFrame(frame)
     end
     self:RefreshCinematicExemptions()
     self:UpdateCinematicBlackout(true)
-    return true, name and "This frame will stay visible in Cinematic Mode." or "This unnamed frame will stay visible until you reload."
+    return true, name and "Kept in Cinematic" or "Kept until reload"
 end
 
 function ns:ClearCinematicKeeps()
@@ -1710,7 +1710,7 @@ end
 
 function ns:BeginCinematicBlackout()
     if not self:IsCinematicActive() or not self.GetUIParentFrameRoots then return false end
-    if InCombatLockdown() then runtime.cinematicScanPending = true; return false, "Cinematic will finish hiding frames when combat ends." end
+    if InCombatLockdown() then runtime.cinematicScanPending = true; return false, "Finishes after combat" end
     runtime.cinematicScanPending = nil
     local roots = self:GetUIParentFrameRoots(true)
     self:RefreshCinematicExemptions(roots)
@@ -1850,7 +1850,7 @@ function ns:ResetCinematicProfile()
 end
 
 function ns:ToggleCinematic(keepOptionsOpen)
-    if InCombatLockdown() then return false, "Toggle Cinematic Mode outside combat.", self:IsCinematicActive() end
+    if InCombatLockdown() then return false, "Not in combat", self:IsCinematicActive() end
     local cinematicName = self:EnsureCinematicProfile()
     local db = FrameGambitDB
     local restoreEditor = keepOptionsOpen == true and self.Options and self.Options:IsShown()
@@ -1949,11 +1949,11 @@ function ns:MigrateLegacyCinematicBinding()
 end
 
 function ns:SetCinematicBinding(key)
-    if InCombatLockdown() then return false, "Change shortcuts outside combat." end
-    if not SetBinding or not SaveBindings then return false, "WoW key binding controls are unavailable." end
+    if InCombatLockdown() then return false, "Not in combat" end
+    if not SetBinding or not SaveBindings then return false, "Key bindings unavailable" end
     local oldPrimary, oldSecondary = GetBindingKey(CINEMATIC_BINDING)
     local replacedAction = key and GetBindingAction and GetBindingAction(key)
-    if key and SetBinding(key, CINEMATIC_BINDING) == false then return false, "WoW rejected that shortcut." end
+    if key and SetBinding(key, CINEMATIC_BINDING) == false then return false, "Shortcut rejected" end
     if oldPrimary and oldPrimary ~= key then SetBinding(oldPrimary, nil) end
     if oldSecondary and oldSecondary ~= key then SetBinding(oldSecondary, nil) end
     local bindingSet = (GetCurrentBindingSet and GetCurrentBindingSet()) or 1
@@ -1962,17 +1962,17 @@ function ns:SetCinematicBinding(key)
         if oldPrimary then SetBinding(oldPrimary, CINEMATIC_BINDING) end
         if oldSecondary then SetBinding(oldSecondary, CINEMATIC_BINDING) end
         SaveBindings(bindingSet)
-        return false, "WoW could not save that shortcut; the previous binding was restored."
+        return false, "Shortcut not saved"
     end
     return true
 end
 
 function ns:SetCinematicCameraBinding(key)
-    if InCombatLockdown() then return false, "Change shortcuts outside combat." end
-    if not SetBinding or not SaveBindings then return false, "WoW key binding controls are unavailable." end
+    if InCombatLockdown() then return false, "Not in combat" end
+    if not SetBinding or not SaveBindings then return false, "Key bindings unavailable" end
     local oldPrimary, oldSecondary = GetBindingKey(CINEMATIC_CAMERA_BINDING)
     local replacedAction = key and GetBindingAction and GetBindingAction(key)
-    if key and SetBinding(key, CINEMATIC_CAMERA_BINDING) == false then return false, "WoW rejected that shortcut." end
+    if key and SetBinding(key, CINEMATIC_CAMERA_BINDING) == false then return false, "Shortcut rejected" end
     if oldPrimary and oldPrimary ~= key then SetBinding(oldPrimary, nil) end
     if oldSecondary and oldSecondary ~= key then SetBinding(oldSecondary, nil) end
     local bindingSet = (GetCurrentBindingSet and GetCurrentBindingSet()) or 1
@@ -1981,7 +1981,7 @@ function ns:SetCinematicCameraBinding(key)
         if oldPrimary then SetBinding(oldPrimary, CINEMATIC_CAMERA_BINDING) end
         if oldSecondary then SetBinding(oldSecondary, CINEMATIC_CAMERA_BINDING) end
         SaveBindings(bindingSet)
-        return false, "WoW could not save that shortcut; the previous binding was restored."
+        return false, "Shortcut not saved"
     end
     return true
 end
@@ -2078,7 +2078,7 @@ end
 
 function ns:CopyTargetRules(id)
     local settings = self:GetTargetSettings(id)
-    if not settings then return false, "Use this frame before copying its rules." end
+    if not settings then return false, "Frame not in use" end
     runtime.ruleClipboard = {
         atRest = settings.atRest,
         fadeInDuration = settings.fadeInDuration,
@@ -2104,7 +2104,7 @@ function ns:CanPasteTargetRules()
 end
 
 function ns:PasteTargetRules(id)
-    if not self:CanPasteTargetRules() then return false, "Copy valid frame rules first." end
+    if not self:CanPasteTargetRules() then return false, "Nothing copied" end
     local settings = self:GetTargetSettings(id, true)
     local clipboard = runtime.ruleClipboard
     settings.atRest = math.max(0, math.min(1, tonumber(clipboard.atRest) or 0.12))
@@ -2193,17 +2193,17 @@ end
 function ns:SelectProfile(name, preserveCinematicReturn)
     name = NormalizeProfileName(name)
     local db = FrameGambitDB
-    if not name or not db.profiles or not db.profiles[name] then return false, "That profile does not exist." end
+    if not name or not db.profiles or not db.profiles[name] then return false, "No such profile" end
     if db.profile == name then return true end
     local leavingCinematic = self:IsCinematicActive() and not self:IsCinematicProfileName(name)
     -- A new profile must not capture a helper's temporary faded alpha as the
     -- host baseline. Drain these leases before transferring target ownership.
     if self.ReleaseMinimapStack and not self:ReleaseMinimapStack() then
         self:Wake()
-        return false, "The minimap is still restoring its opacity. Try switching again."
+        return false, "Minimap busy, try again"
     end
     if self:IsCinematicActive() then
-        if InCombatLockdown() then return false, "Toggle Cinematic Mode outside combat." end
+        if InCombatLockdown() then return false, "Not in combat" end
         self:EndCinematicBlackout()
     end
     local ids = {}
@@ -2259,11 +2259,11 @@ function ns:EnsureShowcaseProfile()
 end
 
 function ns:CreateProfile(name)
-    if self:IsCinematicActive() then return false, "Turn off Cinematic Mode before creating a normal profile." end
+    if self:IsCinematicActive() then return false, "Leave Cinematic first" end
     name = NormalizeProfileName(name)
     local db = FrameGambitDB
-    if not name then return false, "Use 1-24 letters, numbers, spaces, hyphens, underscores, or apostrophes." end
-    if FindProfileName(db, name) then return false, "That profile name is already in use." end
+    if not name then return false, "1-24 letters, digits, spaces, - _ '" end
+    if FindProfileName(db, name) then return false, "Name taken" end
     db.profiles[name] = DeepCopy(self:Profile())
     return self:SelectProfile(name)
 end
@@ -2323,16 +2323,16 @@ end
 function ns:DeleteProfile(name)
     name = NormalizeProfileName(name)
     local db = FrameGambitDB
-    if not name or not db.profiles[name] then return false, "That profile does not exist." end
-    if name == "Default" then return false, "Default is kept as a safe fallback." end
-    if self:IsCinematicProfileName(name) then return false, "Cinematic Mode is managed from its dedicated page." end
+    if not name or not db.profiles[name] then return false, "No such profile" end
+    if name == "Default" then return false, "Default can't be deleted" end
+    if self:IsCinematicProfileName(name) then return false, "Cinematic can't be deleted" end
     local resetCinematicReturn = db.cinematic and db.cinematic.returnProfile == name
     if db.profile == name then self:SelectProfile("Default") end
     db.profiles[name] = nil
     self:GetInputModeProfileSettings()
     if resetCinematicReturn then db.cinematic.returnProfile = "Default" end
     self:RefreshOptions()
-    return true, resetCinematicReturn and "Profile deleted. Cinematic Mode will return to Default." or "Profile deleted."
+    return true, resetCinematicReturn and "Deleted" or "Profile deleted."
 end
 
 local function SortedKeys(values)
@@ -2398,9 +2398,9 @@ end
 
 function ns:ExportProfile(name)
     name = NormalizeProfileName(name or FrameGambitDB.profile)
-    if self:IsCinematicProfileName(name) then return nil, "Turn off Cinematic Mode before exporting a normal profile." end
+    if self:IsCinematicProfileName(name) then return nil, "Leave Cinematic first" end
     local profile = name and FrameGambitDB.profiles and FrameGambitDB.profiles[name]
-    if not profile then return nil, "That profile does not exist." end
+    if not profile then return nil, "No such profile" end
     local lines = { "PF1" }
     for _, targetID in ipairs(SortedKeys(profile.targets)) do
         local settings = profile.targets[targetID]
@@ -2517,12 +2517,12 @@ function ns:ExportProfile(name)
     local body = table.concat(lines, "\n")
     local export = "FrameGambit-1:" .. ProfileChecksum(body) .. "\n" .. body
     local valid, reason = self:ParseProfileImport(export)
-    if not valid then return nil, "This profile cannot be exported: " .. reason end
+    if not valid then return nil, "Export failed: " .. reason end
     return export
 end
 
 function ns:ParseProfileImport(text)
-    if type(text) ~= "string" or #text > 60000 then return ImportFailure("Paste an exported Frame Gambit profile under 60 KB.") end
+    if type(text) ~= "string" or #text > 60000 then return ImportFailure("Not a profile under 60 KB") end
     -- Retail's multiline edit controls and the Windows clipboard do not
     -- always agree on a newline representation. Normalize CRLF, bare CR,
     -- a possible UTF-8 clipboard marker, and harmless outer whitespace before
@@ -2532,7 +2532,7 @@ function ns:ParseProfileImport(text)
     text = text:match("^%s*(.-)%s*$") or ""
     local checksum, body = text:match("^FrameGambit%-1:([0-9A-Fa-f]+)\r?\n([%s%S]+)$")
     if not checksum then checksum, body = text:match("^PriorityFader%-1:([0-9A-Fa-f]+)\r?\n([%s%S]+)$") end
-    if not checksum or not body then return ImportFailure("That export is incomplete or has been changed.") end
+    if not checksum or not body then return ImportFailure("Export damaged") end
     -- WoW EditBox text treats a vertical bar as an escape introducer. A
     -- copied/pasted export can therefore return every visible separator as
     -- two bars. A T record has no empty fields, so its exact alternating
@@ -2559,11 +2559,11 @@ function ns:ParseProfileImport(text)
         checksumAdjusted = checksum:upper() ~= ProfileChecksum(body)
     end
     if checksumAdjusted then
-        return ImportFailure("That export is incomplete or has been changed.")
+        return ImportFailure("Export damaged")
     end
     local lines = {}
     for line in body:gmatch("[^\r\n]+") do lines[#lines + 1] = line end
-    if lines[1] ~= "PF1" then return ImportFailure("This is not a Frame Gambit profile export.") end
+    if lines[1] ~= "PF1" then return ImportFailure("Not a Frame Gambit profile") end
     local profile = { targets = {}, groups = {}, links = {}, visibilityLinks = {}, nextReactionID = 1, nextGroupID = 1 }
     local reactionIDs, reactionByID, reactionsByTarget, memberToGroup, visibilityParentByChild = {}, {}, {}, {}, {}
     local targetCount, reactionCount, groupCount, edgeCount = 0, 0, 0, 0
@@ -2577,8 +2577,8 @@ function ns:ParseProfileImport(text)
             local fadeDelay = ImportNumber(fields[6], 0, 15)
             local fadeOutDuration = fadeDuration
             if #fields == 7 then fadeOutDuration = ImportNumber(fields[7], 0.05, 2) end
-            if not IsSafeImportID(id) or profile.targets[id] or fields[3] ~= "1" or not atRest or not fadeDuration or not fadeOutDuration or not fadeDelay then return ImportFailure("A frame entry is invalid.") end
-            targetCount = targetCount + 1; if targetCount > 120 then return ImportFailure("An import can contain at most 120 frames.") end
+            if not IsSafeImportID(id) or profile.targets[id] or fields[3] ~= "1" or not atRest or not fadeDuration or not fadeOutDuration or not fadeDelay then return ImportFailure("Bad frame entry") end
+            targetCount = targetCount + 1; if targetCount > 120 then return ImportFailure("Over 120 frames") end
             profile.targets[id] = { enabled = true, atRest = atRest, fadeInDuration = fadeDuration, fadeOutDuration = fadeOutDuration, fadeDelay = fadeDelay, reactions = {} }
         elseif tag == "M" and #fields == 3 then
             local targetID, mode = DecodeField(fields[2]), fields[3]
@@ -2588,7 +2588,7 @@ function ns:ParseProfileImport(text)
             if targetID ~= "minimap" or not profile.targets[targetID]
                 or (mode ~= "keep" and mode ~= "hide_zero" and mode ~= "scale")
                 or profile.targets[targetID].nativeMarkerMode ~= nil then
-                return ImportFailure("A Minimap marker setting is invalid.")
+                return ImportFailure("Bad minimap marker setting")
             end
             profile.targets[targetID].nativeMarkerMode = mode
         elseif tag == "R" and #fields >= 5 then
@@ -2598,7 +2598,7 @@ function ns:ParseProfileImport(text)
             -- Extra separators are also harmless only when every added field
             -- is empty; never discard actual unknown reaction data.
             for fieldIndex = 8, #fields do
-                if fields[fieldIndex] ~= "" then return ImportFailure("A reaction entry has unexpected data.") end
+                if fields[fieldIndex] ~= "" then return ImportFailure("Bad reaction entry") end
             end
             fields[6] = fields[6] or ""
             fields[7] = fields[7] or ""
@@ -2606,26 +2606,26 @@ function ns:ParseProfileImport(text)
             local id = ImportNumber(fields[3], 1, 1000000000)
             local opacity = ImportNumber(fields[5], 0, 1)
             local info = condition and CONDITION_INFO[condition]
-            if not IsSafeImportID(targetID) or not profile.targets[targetID] or not id or id % 1 ~= 0 or reactionIDs[id] or not opacity or not info or info.internal or requirements == nil then return ImportFailure("A reaction entry is invalid.") end
+            if not IsSafeImportID(targetID) or not profile.targets[targetID] or not id or id % 1 ~= 0 or reactionIDs[id] or not opacity or not info or info.internal or requirements == nil then return ImportFailure("Bad reaction entry") end
             local duration = nil
             if info.kind == "moment" then
                 duration = ImportNumber(fields[6], 0.5, 30)
-                if not duration then return ImportFailure("A moment duration is invalid.") end
-            elseif fields[6] ~= "" then return ImportFailure("A state reaction cannot have a duration.") end
+                if not duration then return ImportFailure("Bad duration") end
+            elseif fields[6] ~= "" then return ImportFailure("Bad duration") end
             local required, seen = {}, {}
             for requirement in (requirements or ""):gmatch("[^,]+") do
                 local requirementInfo = CONDITION_INFO[requirement]
                 if not requirementInfo or requirementInfo.internal or requirement == condition
                     or requirement == "form" or requirement == "spec" or requirement == "chat_text" or self:IsPercentageCondition(requirement) or self:GetBooleanConditionField(requirement)
                     or seen[requirement] then
-                    return ImportFailure("A reaction requirement is invalid.")
+                    return ImportFailure("Bad requirement")
                 end
                 required[#required + 1], seen[requirement] = requirement, true
             end
             reactionIDs[id] = true; reactionCount = reactionCount + 1
-            if reactionCount > 800 then return ImportFailure("An import can contain at most 800 reactions.") end
+            if reactionCount > 800 then return ImportFailure("Over 800 reactions") end
             reactionsByTarget[targetID] = (reactionsByTarget[targetID] or 0) + 1
-            if reactionsByTarget[targetID] > self.MAX_REACTIONS_PER_TARGET then return ImportFailure("An import can contain at most " .. self.MAX_REACTIONS_PER_TARGET .. " reactions per frame.") end
+            if reactionsByTarget[targetID] > self.MAX_REACTIONS_PER_TARGET then return ImportFailure("Over " .. self.MAX_REACTIONS_PER_TARGET .. " reactions on a frame") end
             local reaction = { id = id, condition = condition, opacity = opacity, duration = duration, requirements = required, enabled = true }
             profile.targets[targetID].reactions[#profile.targets[targetID].reactions + 1] = reaction
             reactionByID[id] = { targetID = targetID, reaction = reaction }
@@ -2637,13 +2637,13 @@ function ns:ParseProfileImport(text)
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or not self:IsPercentageCondition(record.reaction.condition) or record.reaction.percentageOperator ~= nil
                 or not PERCENTAGE_COMPARISONS[fields[4]] or not threshold then
-                return ImportFailure("A percentage comparison is invalid.")
+                return ImportFailure("Bad percentage")
             end
             if #fields == 6 then
                 local member = ImportNumber(fields[6], 1, 5)
                 if not member or member ~= math.floor(member)
                     or (record.reaction.condition ~= "party_health" and record.reaction.condition ~= "party_mana") then
-                    return ImportFailure("A party member selection is invalid.")
+                    return ImportFailure("Bad party member")
                 end
                 record.reaction.partyMember = member
             end
@@ -2654,14 +2654,14 @@ function ns:ParseProfileImport(text)
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or record.reaction.condition ~= "chat_text" or record.reaction.chatText ~= nil
                 or query == nil or #query > 120 or self:NormalizeChatText(query) ~= query then
-                return ImportFailure("A chat text setting is invalid.")
+                return ImportFailure("Bad chat text")
             end
             record.reaction.chatText = query
         elseif tag == "E" and #fields == 4 then
             local targetID, id, enabled = DecodeField(fields[2]), ImportNumber(fields[3], 1, 1000000000), fields[4]
             local record = id and reactionByID[id]
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID or enabled ~= "0" or record.reaction.enabled == false then
-                return ImportFailure("A reaction enabled setting is invalid.")
+                return ImportFailure("Bad on/off setting")
             end
             record.reaction.enabled = false
         elseif tag == "F" and #fields == 5 then
@@ -2670,7 +2670,7 @@ function ns:ParseProfileImport(text)
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or record.reaction.condition ~= "form" or record.reaction.formKey ~= nil
                 or not FORM_BY_ID[formKey] or (expected ~= "0" and expected ~= "1") then
-                return ImportFailure("A form reaction setting is invalid.")
+                return ImportFailure("Bad form setting")
             end
             record.reaction.formKey, record.reaction.formExpected = formKey, expected == "1"
         elseif tag == "B" and #fields == 4 then
@@ -2680,7 +2680,7 @@ function ns:ParseProfileImport(text)
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or not booleanField or record.reaction[booleanField] ~= nil
                 or (expected ~= "0" and expected ~= "1") then
-                return ImportFailure("A Boolean reaction setting is invalid.")
+                return ImportFailure("Bad Yes/No setting")
             end
             record.reaction[booleanField] = expected == "1"
         elseif tag == "S" and #fields == 5 then
@@ -2689,7 +2689,7 @@ function ns:ParseProfileImport(text)
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or record.reaction.condition ~= "spec" or record.reaction.specID ~= nil
                 or not spec or spec.class ~= classID then
-                return ImportFailure("A talent build reaction setting is invalid.")
+                return ImportFailure("Bad talent build")
             end
             record.reaction.specClass, record.reaction.specID = classID, specID
         elseif tag == "K" and #fields == 4 then
@@ -2697,7 +2697,7 @@ function ns:ParseProfileImport(text)
             local record = id and reactionByID[id]
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or fields[4] ~= "1" or record.reaction.keepOpacity ~= nil then
-                return ImportFailure("A Keep opacity setting is invalid.")
+                return ImportFailure("Bad Keep opacity")
             end
             record.reaction.keepOpacity, record.reaction.layoutLine = true, true
         elseif tag == "Z" and #fields == 6 then
@@ -2711,7 +2711,7 @@ function ns:ParseProfileImport(text)
                 or (offsetX == nil) ~= (offsetY == nil) or (scale == nil and offsetX == nil)
                 or (offsetX and self.LayoutReactionCanMove and not self:LayoutReactionCanMove(record.reaction))
                 or record.reaction.scale ~= nil or record.reaction.offsetX ~= nil then
-                return ImportFailure("A size and position setting is invalid.")
+                return ImportFailure("Bad size or position")
             end
             record.reaction.scale, record.reaction.offsetX, record.reaction.offsetY = scale, offsetX, offsetY
             record.reaction.layoutLine = true
@@ -2720,7 +2720,7 @@ function ns:ParseProfileImport(text)
             local record = id and reactionByID[id]
             if not IsSafeImportID(targetID) or not record or record.targetID ~= targetID
                 or fields[4] ~= "1" or record.reaction.layoutInstant ~= nil then
-                return ImportFailure("An instant size and position setting is invalid.")
+                return ImportFailure("Bad Instant setting")
             end
             record.reaction.layoutInstant, record.reaction.layoutLine = true, true
         elseif tag == "O" and #fields == 3 then
@@ -2728,14 +2728,14 @@ function ns:ParseProfileImport(text)
             local settings = IsSafeImportID(targetID) and profile.targets[targetID]
             local pivot = self.NormalizeLayoutPivot and self:NormalizeLayoutPivot(fields[3])
             if not settings or not pivot or pivot ~= fields[3] or settings.layoutPivot then
-                return ImportFailure("A resize pivot setting is invalid.")
+                return ImportFailure("Bad pivot")
             end
             settings.layoutPivot = pivot
         elseif tag == "N" and #fields == 3 then
             local targetID = DecodeField(fields[2])
             local settings = IsSafeImportID(targetID) and profile.targets[targetID]
             if not settings or fields[3] ~= "1" or settings.restLayoutInstant then
-                return ImportFailure("An Otherwise instant setting is invalid.")
+                return ImportFailure("Bad Instant setting")
             end
             settings.restLayoutInstant, settings.restLayoutLine = true, true
         elseif tag == "Y" and #fields == 5 then
@@ -2743,23 +2743,23 @@ function ns:ParseProfileImport(text)
             local settings = IsSafeImportID(targetID) and profile.targets[targetID]
             local scale, offsetX, offsetY = ImportNumber(fields[3], 0.5, 2), ImportNumber(fields[4], -2000, 2000), ImportNumber(fields[5], -2000, 2000)
             if not settings or not scale or not offsetX or not offsetY or settings.restLayoutLine then
-                return ImportFailure("An Otherwise size and position setting is invalid.")
+                return ImportFailure("Bad size or position")
             end
             settings.restScale = scale ~= 1 and scale or nil
             if offsetX ~= 0 or offsetY ~= 0 then settings.restOffsetX, settings.restOffsetY = offsetX, offsetY end
             settings.restLayoutLine = true
         elseif tag == "G" and #fields == 4 then
             local groupID, groupName, membersText = DecodeField(fields[2]), DecodeField(fields[3]), DecodeField(fields[4])
-            if not IsSafeImportID(groupID, 64) or profile.groups[groupID] or not IsSafeImportID(groupName, 64) then return ImportFailure("A reveal group is invalid.") end
+            if not IsSafeImportID(groupID, 64) or profile.groups[groupID] or not IsSafeImportID(groupName, 64) then return ImportFailure("Bad hover group") end
             local members = {}
             for encodedMemberID in (membersText or ""):gmatch("[^,]+") do
                 local memberID = DecodeField(encodedMemberID)
-                if not IsSafeImportID(memberID) or not profile.targets[memberID] or members[memberID] or memberToGroup[memberID] then return ImportFailure("A reveal group member is invalid.") end
+                if not IsSafeImportID(memberID) or not profile.targets[memberID] or members[memberID] or memberToGroup[memberID] then return ImportFailure("Bad hover group member") end
                 members[memberID] = true
             end
             local count = 0; for _ in pairs(members) do count = count + 1 end
-            if count < 2 then return ImportFailure("A reveal group needs at least two frames.") end
-            groupCount = groupCount + 1; if groupCount > 60 then return ImportFailure("An import can contain at most 60 reveal groups.") end
+            if count < 2 then return ImportFailure("Hover group needs 2 frames") end
+            groupCount = groupCount + 1; if groupCount > 60 then return ImportFailure("Over 60 hover groups") end
             for memberID in pairs(members) do memberToGroup[memberID] = groupID end
             profile.groups[groupID] = { name = groupName, members = members }
             local generatedDigits = groupID:match("^group(%d+)$")
@@ -2769,49 +2769,49 @@ function ns:ParseProfileImport(text)
             end
         elseif tag == "L" and #fields == 3 then
             local parentID, childrenText = DecodeField(fields[2]), DecodeField(fields[3])
-            if not IsSafeImportID(parentID) or not profile.targets[parentID] or profile.links[parentID] then return ImportFailure("A linked parent is invalid.") end
+            if not IsSafeImportID(parentID) or not profile.targets[parentID] or profile.links[parentID] then return ImportFailure("Bad linked parent") end
             local children = {}
             for encodedChildID in (childrenText or ""):gmatch("[^,]+") do
                 local childID = DecodeField(encodedChildID)
-                if not IsSafeImportID(childID) or not profile.targets[childID] or childID == parentID or children[childID] then return ImportFailure("A linked child is invalid.") end
+                if not IsSafeImportID(childID) or not profile.targets[childID] or childID == parentID or children[childID] then return ImportFailure("Bad linked child") end
                 children[childID] = true
-                edgeCount = edgeCount + 1; if edgeCount > 500 then return ImportFailure("An import can contain at most 500 links.") end
+                edgeCount = edgeCount + 1; if edgeCount > 500 then return ImportFailure("Over 500 links") end
             end
-            if not next(children) then return ImportFailure("A link needs at least one child.") end
+            if not next(children) then return ImportFailure("Link has no child") end
             profile.links[parentID] = children
         elseif tag == "V" and #fields == 3 then
             local parentID, childrenText = DecodeField(fields[2]), DecodeField(fields[3])
-            if not IsSafeImportID(parentID) or not profile.targets[parentID] or profile.visibilityLinks[parentID] then return ImportFailure("A visibility parent is invalid.") end
+            if not IsSafeImportID(parentID) or not profile.targets[parentID] or profile.visibilityLinks[parentID] then return ImportFailure("Bad visibility parent") end
             local children = {}
             for encodedChildID in (childrenText or ""):gmatch("[^,]+") do
                 local childID = DecodeField(encodedChildID)
                 if not IsSafeImportID(childID) or not profile.targets[childID] or childID == parentID
                     or children[childID] or visibilityParentByChild[childID] then
-                    return ImportFailure("A visibility child is invalid or already follows another frame.")
+                    return ImportFailure("Bad visibility child")
                 end
                 children[childID], visibilityParentByChild[childID] = true, parentID
-                edgeCount = edgeCount + 1; if edgeCount > 500 then return ImportFailure("An import can contain at most 500 relationships.") end
+                edgeCount = edgeCount + 1; if edgeCount > 500 then return ImportFailure("Over 500 relationships") end
             end
-            if not next(children) then return ImportFailure("A visibility parent needs at least one child.") end
+            if not next(children) then return ImportFailure("Visibility parent has no child") end
             profile.visibilityLinks[parentID] = children
         else
-            return ImportFailure("Line " .. index .. " is not a recognized profile entry (" .. tostring(tag or "?") .. ", " .. #fields .. " fields).")
+            return ImportFailure("Line " .. index .. ": unknown entry")
         end
     end
     for _, record in pairs(reactionByID) do
         if self:IsPercentageCondition(record.reaction.condition) and not record.reaction.percentageOperator then
-            return ImportFailure("A percentage reaction needs a comparison and threshold.")
+            return ImportFailure("Percentage incomplete")
         end
         if record.reaction.condition == "form" and not FORM_BY_ID[record.reaction.formKey] then
-            return ImportFailure("A Form reaction needs a valid form choice.")
+            return ImportFailure("Form missing")
         end
         local booleanField = self:GetBooleanConditionField(record.reaction.condition)
         if booleanField and type(record.reaction[booleanField]) ~= "boolean" then
-            return ImportFailure("A Boolean reaction needs a Yes or No choice.")
+            return ImportFailure("Yes/No missing")
         end
         if record.reaction.condition == "spec" then
             local spec = SPEC_BY_ID[record.reaction.specID]
-            if not spec or spec.class ~= record.reaction.specClass then return ImportFailure("A talent build reaction needs a class and build.") end
+            if not spec or spec.class ~= record.reaction.specClass then return ImportFailure("Talent build missing") end
         end
     end
     -- Reveal-group members need an unconditional hover row. Directional links
@@ -2832,7 +2832,7 @@ function ns:ParseProfileImport(text)
             end
         end
         if not hasFallback then
-            return ImportFailure("Every reveal-group member needs an unconditional Mouseover reaction.")
+            return ImportFailure("Hover group member needs Mouseover")
         end
     end
     local function Reaches(id, sought, seen)
@@ -2843,7 +2843,7 @@ function ns:ParseProfileImport(text)
         return false
     end
     for parentID, children in pairs(profile.links) do
-        for childID in pairs(children) do if Reaches(childID, parentID, {}) then return ImportFailure("The import contains a linked-frame loop.") end end
+        for childID in pairs(children) do if Reaches(childID, parentID, {}) then return ImportFailure("Link loop") end end
     end
     local function VisibilityReaches(id, sought, seen)
         if id == sought then return true end
@@ -2856,7 +2856,7 @@ function ns:ParseProfileImport(text)
     end
     for parentID, children in pairs(profile.visibilityLinks) do
         for childID in pairs(children) do
-            if VisibilityReaches(childID, parentID, {}) then return ImportFailure("The import contains a visibility-inheritance loop.") end
+            if VisibilityReaches(childID, parentID, {}) then return ImportFailure("Visibility loop") end
         end
     end
 
@@ -2912,9 +2912,9 @@ end
 
 function ns:ImportProfile(name, text)
     name = NormalizeProfileName(name)
-    if not name then return false, "Use a valid new profile name." end
+    if not name then return false, "Bad profile name" end
     local db = FrameGambitDB
-    if FindProfileName(db, name) then return false, "That profile name is already in use." end
+    if FindProfileName(db, name) then return false, "Name taken" end
     local profile, summary = self:ParseProfileImport(text)
     if not profile then return false, summary end
     -- Save the validated profile before any live-profile switch. Restoring
@@ -2971,7 +2971,7 @@ function ns:EnsureMouseoverReaction(id)
     local settings = self:GetTargetSettings(id, true)
     if self:HasUnconditionalMouseover(settings) then return true end
     if #settings.reactions >= self.MAX_REACTIONS_PER_TARGET then
-        return false, "This frame already has the maximum of " .. self.MAX_REACTIONS_PER_TARGET .. " reactions. Remove one before linking it."
+        return false, "Max " .. self.MAX_REACTIONS_PER_TARGET .. " reactions"
     end
     -- Preserve a user's more specific hover variants (for example,
     -- Mouseover + Shift) before adding the connection-safe fallback.
@@ -3000,7 +3000,7 @@ function ns:CanEnsureMouseoverReaction(id)
     local settings = self:GetTargetSettings(id)
     if not settings or self:HasUnconditionalMouseover(settings) then return true end
     if #settings.reactions >= self.MAX_REACTIONS_PER_TARGET then
-        return false, "This frame already has the maximum of " .. self.MAX_REACTIONS_PER_TARGET .. " reactions. Remove one before linking it."
+        return false, "Max " .. self.MAX_REACTIONS_PER_TARGET .. " reactions"
     end
     return true
 end
@@ -3013,7 +3013,7 @@ function ns:GetRevealGroup(id)
 end
 
 function ns:AddToRevealGroup(id, memberID)
-    if id == memberID then return false, "A frame cannot join a reveal group with itself." end
+    if id == memberID then return false, "Same frame" end
     local groups = self:Profile().groups
     local _, group = self:GetRevealGroup(id)
     local memberKey, memberGroup = self:GetRevealGroup(memberID)
@@ -3083,7 +3083,7 @@ function ns:RemoveLink(parentID, childID)
 end
 
 function ns:CanAddLink(parentID, childID)
-    if parentID == childID then return false, "A frame cannot link to itself." end
+    if parentID == childID then return false, "Same frame" end
     local links = self:Profile().links
     local function Reaches(from, sought, seen)
         if from == sought then return true end
@@ -3094,7 +3094,7 @@ function ns:CanAddLink(parentID, childID)
         end
         return false
     end
-    if Reaches(childID, parentID, {}) then return false, "That link would create a loop." end
+    if Reaches(childID, parentID, {}) then return false, "Would loop" end
     return true
 end
 
@@ -3140,7 +3140,7 @@ function ns:RemoveVisibilityLink(parentID, childID)
 end
 
 function ns:CanAddVisibilityLink(parentID, childID)
-    if parentID == childID then return false, "A frame cannot inherit its own visibility." end
+    if parentID == childID then return false, "Same frame" end
     local links = self:Profile().visibilityLinks
     local function Reaches(from, sought, seen)
         if from == sought then return true end
@@ -3151,7 +3151,7 @@ function ns:CanAddVisibilityLink(parentID, childID)
         end
         return false
     end
-    if Reaches(childID, parentID, {}) then return false, "That visibility relationship would create a loop." end
+    if Reaches(childID, parentID, {}) then return false, "Would loop" end
     return true
 end
 
@@ -3182,8 +3182,8 @@ function ns:AddVisibilityLink(parentID, childID)
     self:Wake()
     self:RefreshOptions()
     return true, childWasManaged
-        and "Linked. Existing local rules still run before the parent."
-        or "Linked as a clean follower. Add local rules only for exceptions."
+        and "Linked"
+        or "Linked"
 end
 
 function ns:EnsureConnectedHoverRules()
@@ -4456,7 +4456,7 @@ function ns:RunDiagnostics()
     local db = FrameGambitDB
     local profile = db and db.profiles and db.profiles[db.profile]
     if type(profile) ~= "table" then
-        DiagnosticMessage("No active profile is loaded. Use /reload, then run the audit again.", self.COLORS.amber)
+        DiagnosticMessage("No profile loaded", self.COLORS.amber)
         return
     end
     local targets = type(profile.targets) == "table" and profile.targets or {}
@@ -4597,9 +4597,9 @@ function ns:RunDiagnostics()
     DiagnosticMessage("Managed frames: " .. configuredAvailable .. "/" .. configured .. " available | Relationships: " .. groupCount .. " groups, " .. linkCount .. " hover links, " .. visibilityCount .. " visibility links.", self.COLORS.muted)
     DiagnosticMessage("Known frames: " .. adapterAvailable .. " available, " .. adapterUnavailable .. " unavailable.", adapterUnavailable > 0 and self.COLORS.amber or self.COLORS.teal)
     if #issues == 0 then
-        DiagnosticMessage("Profile data looks healthy.", self.COLORS.teal)
+        DiagnosticMessage("Profile OK", self.COLORS.teal)
     else
-        DiagnosticMessage("Profile data needs attention: " .. #issues .. " issue" .. (#issues == 1 and "" or "s") .. ".", self.COLORS.amber)
+        DiagnosticMessage(#issues .. " issue" .. (#issues == 1 and "" or "s"), self.COLORS.amber)
         for index = 1, math.min(4, #issues) do DiagnosticMessage("- " .. issues[index], self.COLORS.amber) end
         if #issues > 4 then DiagnosticMessage("- " .. (#issues - 4) .. " more issue(s); export before changing anything.", self.COLORS.amber) end
     end
@@ -4963,7 +4963,7 @@ SLASH_FRAMEGAMBIT5 = "/priorityfader"
 function FrameGambit_ToggleCinematic()
     local ok, reason, enabled = ns:ToggleCinematic()
     if not ok and DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff9D75FFFrame Gambit|r " .. tostring(reason or "Cinematic Mode could not be toggled."))
+        DEFAULT_CHAT_FRAME:AddMessage("|cff9D75FFFrame Gambit|r " .. tostring(reason or "Cinematic failed"))
     elseif ok and ns.Options and ns.Options.active then
         ns.Options.active:SetText(enabled and "Cinematic Mode on" or "Cinematic Mode off")
         ns.Options.active:SetTextColor(unpack(ns.COLORS.teal))
@@ -4973,9 +4973,9 @@ end
 function FrameGambit_ToggleCinematicCamera()
     local ok, enabledOrReason = ns:ToggleCinematicCameraOffset()
     if not ok and DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff9D75FFFrame Gambit|r " .. tostring(enabledOrReason or "The Cinematic camera could not be toggled."))
+        DEFAULT_CHAT_FRAME:AddMessage("|cff9D75FFFrame Gambit|r " .. tostring(enabledOrReason or "Camera failed"))
     elseif ok and ns.Options and ns.Options.active then
-        ns.Options.active:SetText(enabledOrReason and "Cinematic camera left" or "Cinematic camera centered")
+        ns.Options.active:SetText(enabledOrReason and "Camera left" or "Camera centered")
         ns.Options.active:SetTextColor(unpack(ns.COLORS.teal))
     end
 end

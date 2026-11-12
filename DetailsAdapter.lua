@@ -234,9 +234,9 @@ local function MakeProxy(index)
     end
     function proxy:SetAlpha(value)
         if type(value) ~= "number" or Secret(value) or value ~= value or value < 0 or value > 1 then return end
-        if not Refresh(state) then error("Frame Gambit could not resolve this Details window.", 0) end
+        if not Refresh(state) then error("Details window not found", 0) end
         for _, frame in ipairs(state.members) do
-            if not SetAlpha(frame, value) then error("Frame Gambit could not fade this Details window.", 0) end
+            if not SetAlpha(frame, value) then error("Details fade failed", 0) end
         end
         state.applied = value
         for _, frame in ipairs(state.members) do
@@ -298,7 +298,7 @@ local function RegisterDetailsTargets()
             target.skipManagedAlphaHook = true
             target.capability = "Complete Details window"
             target.capabilityTone = "teal"
-            target.capabilityNote = "Fades the title, controls, background, and meter rows together. Details keeps its data, styling, layout, and interactions."
+            target.capabilityNote = "Opacity only"
         end
     end
     ns._batchRegistering = wasBatching

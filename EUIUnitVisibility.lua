@@ -176,7 +176,7 @@ function proxy:SetAlpha(value)
     if not ResolveFrames() then return end
     local ownerOK = SetOwnerAlpha(value)
     local portraitOK = not portrait or SetFrameAlpha(portrait, value)
-    if not ownerOK or not portraitOK then error("Frame Gambit could not apply the Ellesmere Player Frame visibility overlay.", 0) end
+    if not ownerOK or not portraitOK then error("Player Frame fade failed", 0) end
     appliedAlpha = value
 end
 
@@ -212,5 +212,5 @@ if target then
     target.skipManagedAlphaHook = true
     target.capability = "EUI visibility overlay"
     target.capabilityTone = "teal"
-    target.capabilityNote = "Frame Gambit changes only opacity. Ellesmere keeps the Player frame's layout and behavior."
+    target.capabilityNote = "Opacity only"
 end

@@ -186,19 +186,19 @@ end
 
 local function ReadAnchor(frame)
     local getNumPoints, getPoint = Method(frame, "GetNumPoints"), Method(frame, "GetPoint")
-    if not getNumPoints or not getPoint then return nil, "This frame can only fade." end
+    if not getNumPoints or not getPoint then return nil, "Fade only" end
     local ok, count = pcall(getNumPoints, frame)
-    if not ok or not Finite(count) then return nil, "The game hides this frame's position from addons." end
-    if count == 0 then return nil, "This frame has no position yet. Show it first." end
-    if count ~= 1 then return nil, "This frame is held by several anchors, so it can only fade." end
+    if not ok or not Finite(count) then return nil, "Position hidden by the game" end
+    if count == 0 then return nil, "Show it first" end
+    if count ~= 1 then return nil, "Fade only" end
     local pointOK, point, relTo, relPoint, x, y = pcall(getPoint, frame, 1)
     if not pointOK or IsSecret(point) or IsSecret(relTo) or IsSecret(relPoint)
         or type(point) ~= "string" or not POINT_FACTORS[point:upper()]
         or not Finite(x) or not Finite(y) then
-        return nil, "The game hides this frame's position from addons."
+        return nil, "Position hidden by the game"
     end
     if relPoint ~= nil and (type(relPoint) ~= "string" or not POINT_FACTORS[relPoint:upper()]) then
-        return nil, "The game hides this frame's position from addons."
+        return nil, "Position hidden by the game"
     end
     return { point = point, relTo = relTo, relPoint = relPoint or point, x = x, y = y }
 end
@@ -214,27 +214,27 @@ end
 -- Target-level support, without taking the frame over.
 function ns:GetFrameLayoutSupport(id)
     local target = self.TargetByID[id]
-    if not target then return false, "This frame is not available." end
+    if not target then return false, "Not available" end
     -- A target labelled "Opacity only" promises to leave layout to its owner.
     if FADE_ONLY_TARGETS[id] or target.layout == false or target.skipManagedAlphaHook
         or target.capability == "Opacity only" then
-        return false, "Frame Gambit can only fade this frame."
+        return false, "Fade only"
     end
     local record = state.records[id]
     if record and not record.releasing then return true end
     local frame = self:ResolveTarget(id)
-    if not frame then return false, "Open this part of the UI first." end
+    if not frame then return false, "Open it first" end
     for _, name in ipairs({ "SetPoint", "SetScale", "GetScale", "GetEffectiveScale", "GetSize" }) do
-        if not Method(frame, name) then return false, "Frame Gambit can only fade this frame." end
+        if not Method(frame, name) then return false, "Fade only" end
     end
     local forbidden = Method(frame, "IsForbidden")
     if forbidden then
         local ok, value = pcall(forbidden, frame)
-        if not ok or IsSecret(value) or value == true then return false, "Frame Gambit can only fade this frame." end
+        if not ok or IsSecret(value) or value == true then return false, "Fade only" end
     end
     local anchor, reason = ReadAnchor(frame)
     if not anchor then return false, reason end
-    if not ReadScale(frame) then return false, "The game hides this frame's size from addons." end
+    if not ReadScale(frame) then return false, "Size hidden by the game" end
     return true
 end
 
@@ -440,17 +440,17 @@ function ns:ApplyFrameLayout(id, settings, now, combatStart)
         record = state.records[id]
         if record then return end
     end
-    if not frame then state.status[id] = "Open this part of the UI first."; return end
+    if not frame then state.status[id] = "Open it first"; return end
     if self.IsCinematicActive and self:IsCinematicActive() and self.IsCinematicSuiteWindow
         and self:IsCinematicSuiteWindow(frame) then return end
     if not record then
         if combatStart then return end
         local supported, reason = self:GetFrameLayoutSupport(id)
         if not supported then state.status[id] = reason; return end
-        if not HookHost(frame) then state.status[id] = "Waiting for combat to end."; return end
+        if not HookHost(frame) then state.status[id] = "After combat"; return end
         local anchor = ReadAnchor(frame)
         local scale = anchor and ReadScale(frame)
-        if not anchor or not scale then state.status[id] = "The game hides this frame's position from addons."; return end
+        if not anchor or not scale then state.status[id] = "Position hidden by the game"; return end
         anchor.scale = scale
         record = { id = id, frame = frame, base = anchor, immediate = true }
         state.records[id], state.idByFrame[frame] = record, id
@@ -463,7 +463,7 @@ function ns:ApplyFrameLayout(id, settings, now, combatStart)
         if not CanWrite(record) then return end
         RestoreScale(record)
         DropRecord(id, record)
-        state.status[id] = "This frame is held by several anchors, so it can only fade."
+        state.status[id] = "Fade only"
         return
     end
     -- Only protected frames need the combat-start pass; others keep animating.

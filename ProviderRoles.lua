@@ -105,7 +105,7 @@ local function RegisterEUIDamageMeters()
             protected = false,
             capability = "Complete EUI meter",
             capabilityTone = "teal",
-            capabilityNote = "Fades this current Ellesmere damage-meter window. Ellesmere keeps its data, visibility mode, styling, layout, and window lifecycle.",
+            capabilityNote = "Opacity only",
         })
     end
 end

@@ -230,34 +230,34 @@ local function FindControl(kind)
 end
 
 local STEPS = {
-    { title = "Welcome to Frame Gambit", body = "This temporary frame lets you practice in the real editor. The lesson does not change or save rules for your existing UI.", focus = "tutorial_frame" },
-    { title = "1. Select Tutorial Frame", body = "Click Tutorial Frame at the top of the frame list.", focus = "tutorial_target" },
-    { title = "2. Manage the frame", body = "Click Use this frame. Frame Gambit will control only its opacity.", focus = "tutorial_use" },
-    { title = "3. See the resting rule", body = "Standing still matches Stationary at 30%. Move briefly to fall through to Otherwise at 100%.", focus = "tutorial_stationary" },
-    { title = "4. Add Mouseover at 100%", body = "Click + Add reaction, choose Mouseover, then set it to 100%. It is added below Stationary.", focus = "add" },
-    { title = "5. Put Mouseover first", body = "Hover the Tutorial Frame. Stationary still wins because it is first. Move Mouseover above it, then hover again.", focus = "tutorial_move" },
-    { title = "6. Set Otherwise", body = "Set Otherwise below 100%. It applies only when no reaction matches.", focus = "otherwise" },
-    { title = "7. Check the frame", body = "Frame outline marks the selected UI. Turn it on, then use Preview to inspect other frames while the frame list stays available.", focus = "outline" },
-    { title = "You are ready", body = "You selected a frame, added and reordered reactions, and set Otherwise. Finish to remove the temporary frame and its lesson rules.", focus = "cinematic", finish = true },
+    { title = "Welcome to Frame Gambit", body = "A practice frame. Your UI stays as it is", focus = "tutorial_frame" },
+    { title = "1. Select Tutorial Frame", body = "Click Tutorial Frame in the list", focus = "tutorial_target" },
+    { title = "2. Manage the frame", body = "Click Use this frame", focus = "tutorial_use" },
+    { title = "3. See the resting rule", body = "Stand still: 30%. Move: Otherwise, 100%", focus = "tutorial_stationary" },
+    { title = "4. Add Mouseover at 100%", body = "Add reaction > Mouseover > 100%", focus = "add" },
+    { title = "5. Put Mouseover first", body = "Hover it, move Mouseover to the top, hover again", focus = "tutorial_move" },
+    { title = "6. Set Otherwise", body = "Set Otherwise below 100%", focus = "otherwise" },
+    { title = "7. Check the frame", body = "Turn on Frame outline, then try Preview", focus = "outline" },
+    { title = "You are ready", body = "Finish removes the practice frame", focus = "cinematic", finish = true },
 }
 
 local function CanAdvance(tutorial)
     local id = tutorial.targetID
     local settings = id and ns.GetTargetSettings and ns:GetTargetSettings(id)
-    if tutorial.step == 2 then return ns.Options and ns.Options.selected == id, "Select Tutorial Frame in the frame list first." end
-    if tutorial.step == 3 then return settings ~= nil and settings.enabled ~= false, "Click Use this frame first." end
+    if tutorial.step == 2 then return ns.Options and ns.Options.selected == id, "Select Tutorial Frame first" end
+    if tutorial.step == 3 then return settings ~= nil and settings.enabled ~= false, "Click Use this frame first" end
     if tutorial.step == 5 then
         for _, reaction in ipairs(settings and settings.reactions or {}) do
             if reaction.condition == "mouseover" and math.abs((reaction.opacity or 0) - 1) < 0.001 then return true end
         end
-        return false, "Add Mouseover and set its opacity to 100%."
+        return false, "Add Mouseover at 100%"
     end
     if tutorial.step == 6 then
         local first = settings and settings.reactions and settings.reactions[1]
         return first and first.condition == "mouseover" and tutorial.hoveredBeforePriority == true and tutorial.hoveredAfterPriority == true,
-            "Hover while Stationary is first, then move Mouseover above it and hover again."
+            "Hover, move Mouseover up, hover again"
     end
-    if tutorial.step == 7 then return settings and math.abs((settings.atRest or 1) - 1) > 0.001, "Choose a different Otherwise opacity." end
+    if tutorial.step == 7 then return settings and math.abs((settings.atRest or 1) - 1) > 0.001, "Change Otherwise" end
     return true
 end
 
@@ -273,7 +273,7 @@ local function EnsureTutorialFrame()
     portrait:SetSize(42, 42); portrait:SetPoint("LEFT", 9, 0)
     if SetPortraitTexture then SetPortraitTexture(portrait, "player") else portrait:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
     local title = Text(frame, "GameFontNormal", "TUTORIAL FRAME", C.teal); title:SetPoint("TOPLEFT", portrait, "TOPRIGHT", 9, -9)
-    local detail = Text(frame, BODY, "Temporary practice frame", C.muted); detail:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    local detail = Text(frame, BODY, "Practice frame", C.muted); detail:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
     frame:SetScript("OnEnter", function()
         local tutorial = ns.Tutorial
         local settings = tutorial and tutorial.targetID and ns.GetTargetSettings and ns:GetTargetSettings(tutorial.targetID)
@@ -367,7 +367,7 @@ local function CreateHelp()
     if ns.TrackEUIObject then ns:TrackEUIObject("panel", help) end
     CloseButton(help, function() ns:CloseHelp() end):SetPoint("TOPRIGHT", -8, -8)
     local title = Text(help, "GameFontNormalHuge", "Help & tutorial", C.accent); title:SetPoint("TOPLEFT", 20, -18)
-    local subtitle = Text(help, BODY, "Choose a topic or start the tutorial.", C.muted); subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -5)
+    local subtitle = Text(help, BODY, "", C.muted); subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -5)
     local drag = CreateFrame("Frame", nil, help)
     drag:SetPoint("TOPLEFT"); drag:SetPoint("TOPRIGHT"); drag:SetHeight(58)
     drag:EnableMouse(true); drag:RegisterForDrag("LeftButton")
@@ -375,13 +375,13 @@ local function CreateHelp()
     drag:SetScript("OnDragStop", function() help:StopMovingOrSizing() end)
 
     local topics = {
-        { title = "Start here", summary = "Pick a frame, add reactions, then set Otherwise.", body = "1. Pick a visible frame.\n\n2. Add the moments that should reveal or fade it.\n\n3. Set Otherwise for every other moment." },
-        { title = "Rule priority", summary = "The first matching reaction sets opacity.", body = "Reactions run from top to bottom. Once one matches, lower rows are skipped. Drag rows to change priority.\n\nSize and position (experimental): the small toggle on a card adds Instant, Size and Move; the opacity window adds Keep opacity. Opacity, size and position each come from the first matching rule that sets them, otherwise from Otherwise. Keep opacity lets a rule change only size or position." },
-        { title = "Relationships", summary = "Connect frames that should respond together.", body = "Hover group: hovering any member reveals the group.\n\nLinked child: hovering the source reveals its child.\n\nVisibility child: when its own rules do not match, the child follows its parent." },
-        { title = "Appearance", summary = "Choose an appearance.", body = "Use Appearance in the editor header to switch among Ellesmere, Mimezu, Luminous, Charcoal, Chalk, Tungsten, Editorial, Super NES, Famicom, GameCube, Genesis, PS1, PS2, Xbox, Xbox 360, Violet Mist, and Violet Bloom. Ellesmere is the default. Your choice is saved and every Frame Gambit window uses it whether EllesmereUI is installed or not.\n\nDrag the header to move the window. Cinematic accents stay orange." },
-        { title = "Cinematic", summary = "A separate profile for a cleaner scene.", body = "Cinematic keeps its own frame rules, black bars, field of view, and shortcuts. Left camera on entry places your character to the left and adapts as you zoom; its separate shortcut switches between that composition and a centered camera. Your previous camera settings return when Cinematic ends." },
-        { title = "Safety", summary = "Frame Gambit changes opacity, and size or position only where you ask.", body = "It never restyles, reparents, shows, hides, or changes secure controls owned by WoW or another addon.\n\nA frame is resized or moved only when one of its rules, or Otherwise, sets a size or position. Protected frames change only outside combat, Edit Mode always shows the normal layout, and turning the toggle off puts the frame back where its owner placed it." },
-        { title = "Troubleshooting", summary = "Confirm that you selected the intended frame.", body = "Use Pick on screen for one frame, or Discover visible UI to add several. Turn on Frame outline, then use Preview to check the result." },
+        { title = "Start here", summary = "Pick, react, Otherwise", body = "1. Pick a frame\n\n2. Add reactions\n\n3. Set Otherwise" },
+        { title = "Rule priority", summary = "First match wins", body = "Top row first. Drag to reorder\n\nSize and position: experimental" },
+        { title = "Relationships", summary = "Frames that react together", body = "Hover group: hover one, show all\n\nLinked child: hover the source, show the child\n\nVisibility child: follows its parent" },
+        { title = "Appearance", summary = "Window look", body = "Header > Appearance. Saved for every Frame Gambit window" },
+        { title = "Cinematic", summary = "Its own profile", body = "Own rules, black bars, FOV and shortcuts\n\nCamera settings return when it ends" },
+        { title = "Safety", summary = "Opacity, and size or position if asked", body = "Never restyles, shows or hides frames\n\nProtected frames: not in combat" },
+        { title = "Troubleshooting", summary = "Wrong frame?", body = "Pick on screen: one frame\n\nDiscover visible UI: several\n\nFrame outline and Preview: check" },
     }
     local rail = CreateFrame("Frame", nil, help, "BackdropTemplate")
     rail:SetPoint("TOPLEFT", 18, -76); rail:SetPoint("BOTTOMLEFT", 18, 62); rail:SetWidth(190); Backdrop(rail, C.cardAlt, C.border)
@@ -419,7 +419,7 @@ local function CreateHelp()
         end)
         help.topicButtons[index] = button
     end
-    local start = Button(help, "Start guided tutorial", 190, function() help:Hide(); ns:StartTutorial() end, true)
+    local start = Button(help, "Start tutorial", 190, function() help:Hide(); ns:StartTutorial() end, true)
     start:SetPoint("BOTTOMLEFT", 18, 18); help.start = start
     local restart = Button(help, "Restart tutorial", 125, function() help:Hide(); ns:StartTutorial(1) end)
     restart:SetPoint("LEFT", start, "RIGHT", 8, 0); help.restart = restart
@@ -459,7 +459,7 @@ local function CreateTutorial()
         if not tutorial or tutorial.paused then return end
         local ready, message = CanAdvance(tutorial)
         if not ready then
-            card.validation:SetText(message or "Try this step first.")
+            card.validation:SetText(message or "Not done yet")
             return
         end
         if tutorial.step >= #STEPS then ns:CancelTutorial("complete"); return end
@@ -485,7 +485,7 @@ local function CreateTutorial()
 end
 
 function ns:OpenHelp()
-    if IsCombat() then Notice("Leave combat to open Help.", C.amber); return end
+    if IsCombat() then Notice("Not in combat", C.amber); return end
     if ns.HideAppearancePicker then ns:HideAppearancePicker() end
     if ns.MarkHelpRead then ns:MarkHelpRead() end
     -- Help and the coach card are mutually exclusive. Save the live step
@@ -494,13 +494,13 @@ function ns:OpenHelp()
     local help = CreateHelp()
     local savedStep, completed = GetState()
     if completed then
-        help.start:GetFontString():SetText("Replay guided tutorial")
+        help.start:GetFontString():SetText("Replay tutorial")
         help.restart:Hide()
     elseif savedStep > 1 then
-        help.start:GetFontString():SetText("Resume guided tutorial")
+        help.start:GetFontString():SetText("Resume tutorial")
         help.restart:Show()
     else
-        help.start:GetFontString():SetText("Start guided tutorial")
+        help.start:GetFontString():SetText("Start tutorial")
         help.restart:Hide()
     end
     help:ShowTopic(1)
@@ -521,7 +521,7 @@ function ns:CloseHelp()
 end
 
 function ns:StartTutorial(requestedStep)
-    if IsCombat() then Notice("Leave combat to start the tutorial.", C.amber); return false end
+    if IsCombat() then Notice("Not in combat", C.amber); return false end
     if ns.HideAppearancePicker then ns:HideAppearancePicker() end
     local panel = EnsureOptions()
     if not panel then return false end
@@ -539,7 +539,7 @@ function ns:StartTutorial(requestedStep)
         local tutorial = ns.Tutorial
         ns.Tutorial = nil
         CleanupTutorialTarget(tutorial)
-        Notice(reason or "The temporary Tutorial Frame could not be created.", C.amber)
+        Notice(reason or "Practice frame failed", C.amber)
         return false
     end
     local card = CreateTutorial()
@@ -557,7 +557,7 @@ function ns:CancelTutorial(reason)
     if ns.TutorialCard then ns.TutorialCard:Hide() end
     ns.Tutorial = nil
     CleanupTutorialTarget(tutorial)
-    if completed then Notice("Tutorial complete. You can restart it any time from Help.", C.teal) end
+    if completed then Notice("Tutorial complete", C.teal) end
 end
 
 function ns:RefreshTutorial()

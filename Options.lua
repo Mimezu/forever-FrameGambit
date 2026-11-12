@@ -1067,7 +1067,7 @@ local function CloseButton(parent, callback)
         end
     end)
     button:SetScript("OnClick", callback or function() parent:Hide() end)
-    SetTooltip(button, "Close", "Close this window.")
+    SetTooltip(button, "Close", nil)
     ApplyEUIObject("close", button)
     return button
 end
@@ -1152,7 +1152,7 @@ function ns:ApplyEditorTheme(force)
         panel.cinematic:GetFontString():SetTextColor(unpack(CINEMATIC_ACCENT))
     end
     if panel and panel.subtitle then
-        panel.subtitle:SetText(cinematic and "Editing the Cinematic profile. Changes apply live." or "Choose a frame and set when it should appear.")
+        panel.subtitle:SetText(cinematic and "Editing Cinematic" or "")
         panel.subtitle:SetTextColor(unpack(cinematic and CINEMATIC_ACCENT or C.muted))
     end
     if ns.LegacySkin then ns.LegacySkin:RefreshDetails(activeAppearanceID == "legacy") end
@@ -1287,14 +1287,14 @@ AddLayoutControls = function(row)
     row.layoutToggle = Button(row, "", REQUIREMENT_BUTTON_SIZE, nil)
     DrawLayoutMark(row.layoutToggle); row.layoutToggle:Hide()
     SetTooltip(row.layoutToggle, "Size and position",
-        "Experimental. Let this rule also change the frame's size or position. Turn it off to go back to opacity only. Protected frames change only outside combat.")
+        "Experimental. Protected frames: not in combat")
     row.position = Button(row, "", 108, nil); row.position:Hide()
     -- Anchored by ConfigureLayoutLine: beside the toggle, or on a second line.
     row.size = Button(row, "", 76, nil); row.size:SetPoint("RIGHT", row.position, "LEFT", -5, 0); row.size:Hide()
     -- Small "Instant" switch, first of the right-aligned group.
     row.instant = Button(row, "Instant", 46, nil)
     row.instant:SetPoint("RIGHT", row.size, "LEFT", -5, 0); row.instant:Hide()
-    SetTooltip(row.instant, "Instant", "Off: size and position ease over the frame's fade times. On: they change at once when this takes effect.")
+    SetTooltip(row.instant, nil, nil)
 end
 
 -- Reaction rows are edited frequently.  Keep a small reusable set rather
@@ -1317,7 +1317,7 @@ local function NewReactionRow(parent)
     row.handle:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Reorder reaction", unpack(C.accent))
-        GameTooltip:AddLine("Drag to change priority. The first matching reaction wins.", C.muted[1], C.muted[2], C.muted[3], true)
+        GameTooltip:AddLine("First match wins", C.muted[1], C.muted[2], C.muted[3], true)
         GameTooltip:Show()
     end)
     row.handle:SetScript("OnLeave", GameTooltip_Hide)
@@ -1329,28 +1329,28 @@ local function NewReactionRow(parent)
     row.label:SetWordWrap(false)
     row.formPicker = Button(row, "", 132, nil); row.formPicker:Hide()
     row.formExpected = BooleanChoice(row); row.formExpected:SetPoint("LEFT", row.formPicker, "RIGHT", 5, 0); row.formExpected:Hide()
-    SetTooltip(row.formPicker, "Form", "Choose which form this reaction checks. Unavailable forms stay saved but are skipped.")
-    row.formExpected:SetTips("Form is active", "This row matches while the chosen form is active. Click to switch to inactive.",
-        "Form is inactive", "This row matches while the chosen form is available but inactive. Click to switch to active.")
+    SetTooltip(row.formPicker, nil, nil)
+    row.formExpected:SetTips("Form is active", nil,
+        "Form is inactive", nil)
     row.opacity = Button(row, "", 54, nil)
     row.opacity:RegisterForClicks("LeftButtonUp", "RightButtonUp"); row.opacity:SetPoint("RIGHT", row.line, "RIGHT", -87, 0)
-    SetTooltip(row.opacity, "Opacity", "Choose a preset or drag for a precise value.")
+    SetTooltip(row.opacity, "Opacity", nil)
     row.requirements = Button(row, "+", REQUIREMENT_BUTTON_SIZE, nil)
     TrackTheme(row.requirements, "requirementButton")
     StyleRequirementButton(row.requirements)
     row.requirements:HookScript("OnEnter", function(self) StyleRequirementButton(self, true) end)
     row.requirements:HookScript("OnLeave", function(self) StyleRequirementButton(self, false) end)
     SetRequirementButtonLabel(row.requirements, "+")
-    SetTooltip(row.requirements, "Requirements", "Add conditions that must all be true.")
+    SetTooltip(row.requirements, "Requirements", nil)
     -- Enable/disable is a row-level control, so it lives beside the drag
     -- handle rather than among the condition's value controls.
     row.enabled = Button(row, "On", 30, nil); row.enabled:SetPoint("LEFT", row.handle, "RIGHT", 5, 0)
     row.requirements:SetPoint("LEFT", row.enabled, "RIGHT", 5, 0)
     row.label:SetPoint("LEFT", row.requirements, "RIGHT", 6, 0)
     row.formPicker:SetPoint("LEFT", row.requirements, "RIGHT", 6, 0)
-    SetTooltip(row.enabled, "Reaction enabled", "Turn this reaction off without deleting it.")
+    SetTooltip(row.enabled, nil, nil)
     row.duration = Button(row, "", 40, nil); row.duration:SetPoint("RIGHT", row.opacity, "LEFT", -5); row.duration:Hide()
-    SetTooltip(row.duration, "Reaction duration", "Choose how long this event reaction stays active.")
+    SetTooltip(row.duration, "Duration", nil)
     row.up = Button(row, "", 22, nil); row.up:SetPoint("RIGHT", row.line, "RIGHT", -60, 0); DrawTriangle(row.up, "up")
     row.down = Button(row, "", 22, nil); row.down:SetPoint("RIGHT", row.line, "RIGHT", -34, 0); DrawTriangle(row.down, "down")
     row.remove = Button(row, "x", 22, nil); row.remove:SetPoint("RIGHT", row.line, "RIGHT", -8, 0)
@@ -1376,15 +1376,15 @@ local function ReactionLabel(reaction)
     end
     if reaction and reaction.condition == "chat_text" then
         local query = ns:NormalizeChatText(reaction.chatText)
-        return query ~= "" and ("Chat: " .. query:gsub("|", "||")) or "Chat: choose text"
+        return query ~= "" and ("Chat: " .. query:gsub("|", "||")) or "Chat: no text"
     end
     if reaction and reaction.condition == "form" then
         local option = ns.FORM_BY_ID and ns.FORM_BY_ID[reaction.formKey]
-        return "Form: " .. (option and option.label or "Choose a form")
+        return "Form: " .. (option and option.label or "none")
     end
     if reaction and reaction.condition == "spec" then
         local option = ns.SPEC_BY_ID and ns.SPEC_BY_ID[reaction.specID]
-        return "Build: " .. (option and option.label or "Choose a build")
+        return "Build: " .. (option and option.label or "none")
     end
     return ConditionLabel(reaction and reaction.condition or "")
 end
@@ -1528,7 +1528,7 @@ function ns:CreateOptions()
     local title = Text(header, "GameFontNormalLarge", "Frame Gambit", C.accent)
     panel.legacyTitle, panel.legacyIcon = title, icon
     title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -1)
-    local subtitle = Text(header, "GameFontHighlightSmall", "Choose a frame and set when it should appear.", C.muted)
+    local subtitle = Text(header, "GameFontHighlightSmall", "", C.muted)
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
     panel.subtitle = subtitle
     local version = Text(header, "GameFontHighlightSmall", "v" .. self.VERSION .. "  |  Forever Beta", C.teal)
@@ -1548,21 +1548,21 @@ function ns:CreateOptions()
     panel.profile = profile
     local cinematic = Button(header, "Edit Cinematic", 144, function()
         local ok, reason = ns:ToggleCinematic(true)
-        if not ok then ns:ShowEditorNotice(reason or "Cinematic Mode could not be toggled.", "amber") end
+        if not ok then ns:ShowEditorNotice(reason or "Cinematic failed", "amber") end
         ns:RenderOptions()
     end)
     cinematic._cinematicAccent = true
     cinematic:SetPoint("TOPRIGHT", header, "TOPRIGHT", -58, -18); panel.cinematic = cinematic
-    SetTooltip(cinematic, "Edit Cinematic", "Open the separate Cinematic profile. Amber means it is active.")
+    SetTooltip(cinematic, nil, nil)
     local peek = Button(header, "Preview", 76, function() ns:EnterEditorPeek() end)
     peek:SetPoint("RIGHT", profile, "LEFT", -7, 0)
-    SetTooltip(peek, "Preview", "Hide the editor except for the frame list. Hover a frame name to move the outline; click to select.")
+    SetTooltip(peek, nil, nil)
     panel.peek = peek
     local helpButton = Button(header, "?  Help", 72, function()
         if ns.ToggleHelp then ns:ToggleHelp() elseif ns.OpenHelp then ns:OpenHelp() end
     end)
     helpButton:SetPoint("RIGHT", peek, "LEFT", -7, 0)
-    SetTooltip(helpButton, "Help & tutorial", "Read the guide or start the tutorial.")
+    SetTooltip(helpButton, nil, nil)
     panel.helpButton = helpButton
     local appearancePicker
     local appearance = Button(header, "Appearance", 104, function()
@@ -1572,7 +1572,7 @@ function ns:CreateOptions()
     -- Hairline between the view action (Preview) and the utilities.
     panel.headerDivider = header:CreateTexture(nil, "ARTWORK")
     panel.headerDivider:SetTexture("Interface\\Buttons\\WHITE8X8"); panel.headerDivider:SetVertexColor(unpack(C.border)); TrackTheme(panel.headerDivider, "borderVertex")
-    SetTooltip(appearance, "Appearance", "Choose a complete Frame Gambit skin. Changes apply immediately and are saved.")
+    SetTooltip(appearance, nil, nil)
     panel.appearance = appearance
     subtitle:SetPoint("RIGHT", appearance, "LEFT", -10, 0)
     subtitle:SetWordWrap(false)
@@ -1682,7 +1682,7 @@ function ns:CreateOptions()
             end
         end
     end)
-    SetTooltip(cinematicControls.fovSlider, "Cinematic FOV", "Set the field of view used while Cinematic Mode is active. Your previous FOV returns when it ends.")
+    SetTooltip(cinematicControls.fovSlider, "Cinematic FOV", nil)
 
     cinematicControls.letterboxGroup = CreateFrame("Frame", nil, cinematicControls)
     cinematicControls.letterboxGroup:SetPoint("TOPLEFT", cinematicControls, "TOP", 6, -5); cinematicControls.letterboxGroup:SetPoint("TOPRIGHT", -8, -5); cinematicControls.letterboxGroup:SetHeight(24)
@@ -1695,7 +1695,7 @@ function ns:CreateOptions()
         ns:RenderOptions()
     end)
     cinematicControls.letterboxToggle:SetPoint("RIGHT", 0, 0)
-    SetTooltip(cinematicControls.letterboxToggle, "Cinematic black bars", "Add mouse-transparent letterbox bars at the top and bottom of the screen.")
+    SetTooltip(cinematicControls.letterboxToggle, "Black bars", nil)
     cinematicControls.letterboxSlider = CreateFrame("Slider", nil, cinematicControls.letterboxGroup, "BackdropTemplate")
     cinematicControls.letterboxSlider:SetPoint("LEFT", cinematicControls.letterboxLabel, "RIGHT", 8, 0)
     cinematicControls.letterboxSlider:SetPoint("RIGHT", cinematicControls.letterboxToggle, "LEFT", -8, 0)
@@ -1723,16 +1723,16 @@ function ns:CreateOptions()
         ns:RenderOptions()
     end)
     cinematicControls.cameraDefaultToggle:SetPoint("RIGHT", 0, 0)
-    SetTooltip(cinematicControls.cameraDefaultToggle, "Left camera on entry", "Choose whether Cinematic Mode starts with your character composed on the left. The camera shortcut can still change it live.")
+    SetTooltip(cinematicControls.cameraDefaultToggle, "Left camera on entry", nil)
 
     cinematicControls.modeShortcutGroup = CreateFrame("Frame", nil, cinematicControls.actionsGroup)
     cinematicControls.modeShortcutGroup:SetPoint("LEFT", cinematicControls.cameraDefaultGroup, "RIGHT", 12, 0); cinematicControls.modeShortcutGroup:SetPoint("RIGHT", cinematicControls.actionsGroup, "CENTER", -4, 0); cinematicControls.modeShortcutGroup:SetHeight(24)
     cinematicControls.shortcut = Button(cinematicControls.modeShortcutGroup, "Mode: Set", 180, function() ns:OpenCinematicKeyCapture() end)
     cinematicControls.shortcut:SetPoint("LEFT", 0, 0); cinematicControls.shortcut:SetPoint("RIGHT", -50, 0)
-    SetTooltip(cinematicControls.shortcut, "Cinematic shortcut", "Choose a shortcut for toggling Cinematic Mode outside combat.")
+    SetTooltip(cinematicControls.shortcut, nil, nil)
     cinematicControls.clear = Button(cinematicControls.modeShortcutGroup, "Clear", 43, function()
         local ok, reason = ns:SetCinematicBinding(nil)
-        if not ok then ns:ShowEditorNotice(reason or "Cinematic shortcut could not be cleared.", "amber") end
+        if not ok then ns:ShowEditorNotice(reason or "Shortcut not cleared", "amber") end
         ns:RenderOptions()
     end)
     cinematicControls.clear:SetPoint("RIGHT", 0, 0)
@@ -1741,10 +1741,10 @@ function ns:CreateOptions()
     cinematicControls.cameraShortcutGroup:SetPoint("LEFT", cinematicControls.actionsGroup, "CENTER", 4, 0); cinematicControls.cameraShortcutGroup:SetPoint("RIGHT", 0, 0); cinematicControls.cameraShortcutGroup:SetHeight(24)
     cinematicControls.cameraShortcut = Button(cinematicControls.cameraShortcutGroup, "Camera: Set", 180, function() ns:OpenCinematicCameraKeyCapture() end)
     cinematicControls.cameraShortcut:SetPoint("LEFT", 0, 0); cinematicControls.cameraShortcut:SetPoint("RIGHT", -50, 0)
-    SetTooltip(cinematicControls.cameraShortcut, "Camera shortcut", "Choose a separate shortcut for switching between the left camera and centered camera while Cinematic is active.")
+    SetTooltip(cinematicControls.cameraShortcut, nil, nil)
     cinematicControls.cameraClear = Button(cinematicControls.cameraShortcutGroup, "Clear", 43, function()
         local ok, reason = ns:SetCinematicCameraBinding(nil)
-        if not ok then ns:ShowEditorNotice(reason or "Camera shortcut could not be cleared.", "amber") end
+        if not ok then ns:ShowEditorNotice(reason or "Shortcut not cleared", "amber") end
         ns:RenderOptions()
     end)
     cinematicControls.cameraClear:SetPoint("RIGHT", 0, 0)
@@ -1761,7 +1761,7 @@ function ns:CreateOptions()
     resizer:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
     resizer:SetScript("OnMouseDown", function(_, button) if button == "LeftButton" then panel:StartSizing("BOTTOMRIGHT") end end)
     resizer:SetScript("OnMouseUp", function() panel:StopMovingOrSizing() end)
-    SetTooltip(resizer, "Resize", "Drag to resize the Frame Gambit editor.")
+    SetTooltip(resizer, "Resize", nil)
 
     local targets = CreateFrame("Frame", nil, panel, "BackdropTemplate")
     targets:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -12); targets:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 12, 12); targets:SetWidth(230)
@@ -1774,12 +1774,12 @@ function ns:CreateOptions()
     panel.pickButton = add
     local scan = Button(targets, "Discover visible UI", 102, function()
         if InCombatLockdown() then
-            panel.active:SetText("Leave combat to discover frames."); panel.active:SetTextColor(unpack(C.amber))
+            panel.active:SetText("Not in combat"); panel.active:SetTextColor(unpack(C.amber))
             return
         end
         local added, firstID = ns:DiscoverVisibleFrameRoots()
         if firstID then panel.selected = firstID end
-        panel.active:SetText(added > 0 and (added .. " frame" .. (added == 1 and " added." or "s added.")) or "All visible frames are already listed.")
+        panel.active:SetText(added > 0 and (added .. " added") or "Nothing new")
         panel.active:SetTextColor(unpack(added > 0 and C.teal or C.muted))
         ns:RenderOptions()
     end)
@@ -1827,7 +1827,7 @@ function ns:CreateOptions()
     Backdrop(center, C.card); panel.center = center; center._rows = {}
     ApplyEUIObject("panel", center, { inset = true })
     local centerTitle = Text(center, "GameFontNormal", "Choose a frame", C.teal); centerTitle:SetPoint("TOPLEFT", 16, -13); panel.centerTitle = centerTitle
-    local centerHint = Text(center, "GameFontHighlightSmall", "First matching rule applies", C.muted)
+    local centerHint = Text(center, "GameFontHighlightSmall", "First match wins", C.muted)
     centerHint:SetPoint("TOPLEFT", centerTitle, "BOTTOMLEFT", 0, -3); panel.centerHint = centerHint
     local active = Text(center, "GameFontHighlightSmall", "", C.muted); active:SetPoint("TOPRIGHT", -14, -14); panel.active = active
     local notice = CreateFrame("Button", nil, center, "BackdropTemplate")
@@ -1840,7 +1840,7 @@ function ns:CreateOptions()
     notice.label:SetJustifyH("LEFT"); notice.label:SetWordWrap(true)
     if notice.label.SetMaxLines then notice.label:SetMaxLines(2) end
     notice:SetScript("OnClick", function(self) self:Hide() end)
-    SetTooltip(notice, "Frame Gambit notice", "Click to dismiss this message.")
+    SetTooltip(notice, "Dismiss", nil)
     notice:Hide(); panel.notice = notice
     local reactionScroll = CreateFrame("ScrollFrame", nil, center, "UIPanelScrollFrameTemplate")
     reactionScroll:SetPoint("TOPLEFT", 14, -78); reactionScroll:SetPoint("BOTTOMRIGHT", -29, 44); panel.reactionScroll = reactionScroll
@@ -1861,14 +1861,14 @@ function ns:CreateOptions()
         panel.active:SetText(ok and "Rules copied" or reason); panel.active:SetTextColor(unpack(ok and C.teal or C.amber))
     end)
     panel.copyRules:SetPoint("TOPRIGHT", -29, -43)
-    SetTooltip(panel.copyRules, "Copy rules", "Copy reactions, Otherwise, and timing. Relationships are not copied.")
+    SetTooltip(panel.copyRules, nil, nil)
     panel.pasteRules = Button(center, "Paste rules", 82, function()
         if not panel.selected then return end
         local ok, reason = ns:PasteTargetRules(panel.selected)
         panel.active:SetText(ok and "Rules pasted" or reason); panel.active:SetTextColor(unpack(ok and C.teal or C.amber))
     end)
     panel.pasteRules:SetPoint("RIGHT", panel.copyRules, "LEFT", -7, 0)
-    SetTooltip(panel.pasteRules, "Paste rules", "Replace reactions, Otherwise, and timing. Relationships stay unchanged.")
+    SetTooltip(panel.pasteRules, "Paste rules", "Replaces this frame's rules")
 
     local presence = CreateFrame("Frame", nil, panel, "BackdropTemplate")
     presence:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, -12); presence:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -12, 12); presence:SetWidth(230)
@@ -1896,7 +1896,7 @@ function ns:CreateOptions()
             panel.forgetToken = (panel.forgetToken or 0) + 1
             local token = panel.forgetToken
             forget:GetFontString():SetText("Confirm remove")
-            panel.active:SetText("This removes the frame, its rules, and its relationships from every profile.")
+            panel.active:SetText("Removes it from every profile")
             panel.active:SetTextColor(unpack(C.amber))
             C_Timer.After(4, function()
                 if panel.forgetToken == token then
@@ -1915,7 +1915,7 @@ function ns:CreateOptions()
         ns:RenderOptions()
     end)
     forget:SetPoint("BOTTOMRIGHT", reset, "TOPRIGHT", 0, 6)
-    SetTooltip(forget, "Remove discovered frame", "Remove this discovered frame and its saved settings from every profile. Built-in frames stay listed.")
+    SetTooltip(forget, "Remove from list", "Removes it from every profile")
     panel.forgetTarget = forget
     panel:SetScript("OnShow", function() ns:RenderOptions() end)
     panel:SetScript("OnHide", function()
@@ -2083,9 +2083,9 @@ function ns:CreateCinematicKeyCapture()
     ApplyEUIObject("panel", capture, { inset = true })
     table.insert(UISpecialFrames, capture:GetName())
     local title = Text(capture, "GameFontNormal", "Set Cinematic shortcut", C.accent); title:SetPoint("TOPLEFT", 14, -13); capture.title = title
-    capture.copy = Text(capture, "GameFontHighlightSmall", "Press a key combination. Escape cancels. An existing binding on the same keys will be replaced.", C.muted)
+    capture.copy = Text(capture, "GameFontHighlightSmall", "Press a key. Esc: cancel", C.muted)
     capture.copy:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6); capture.copy:SetPoint("RIGHT", -14, 0); capture.copy:SetJustifyH("LEFT"); capture.copy:SetWordWrap(true)
-    capture.status = Text(capture, "GameFontHighlightSmall", "Waiting for a shortcut...", C.teal); capture.status:SetPoint("BOTTOMLEFT", 14, 16)
+    capture.status = Text(capture, "GameFontHighlightSmall", "Waiting…", C.teal); capture.status:SetPoint("BOTTOMLEFT", 14, 16)
     local cancel = Button(capture, "Cancel", 70, function() capture:Hide() end); cancel:SetPoint("BOTTOMRIGHT", -12, 12)
     capture.use = Button(capture, "Use shortcut", 94, function()
         if capture.pending == nil then return end
@@ -2103,7 +2103,7 @@ function ns:CreateCinematicKeyCapture()
         if not chord then return end
         capture.pending = chord; capture.use:GetFontString():SetText("Use shortcut"); capture.use:Show()
         local occupied = GetBindingAction and GetBindingAction(chord)
-        local extra = occupied and occupied ~= "" and " It currently belongs to " .. occupied .. " and will be replaced." or ""
+        local extra = occupied and occupied ~= "" and " Replaces " .. occupied or ""
         local display = (GetBindingText and GetBindingText(chord, "KEY_") or chord) or chord
         capture.status:SetText("Use " .. display .. "?" .. extra); capture.status:SetTextColor(unpack(occupied and C.amber or C.teal))
     end)
@@ -2144,14 +2144,14 @@ end
 
 local function OpenCinematicKeyCapture(self, kind)
     if InCombatLockdown() then
-        self:ShowEditorNotice("Change Cinematic shortcuts outside combat.", "amber")
+        self:ShowEditorNotice("Not in combat", "amber")
         return
     end
     self:CreateCinematicKeyCapture()
     local capture = self.CinematicKeyCapture
     capture.bindingKind = kind == "camera" and "camera" or "mode"
     capture.title:SetText(capture.bindingKind == "camera" and "Set camera shortcut" or "Set Cinematic shortcut")
-    capture.status:SetText("Waiting for a shortcut..."); capture.status:SetTextColor(unpack(C.teal))
+    capture.status:SetText("Waiting…"); capture.status:SetTextColor(unpack(C.teal))
     capture:ClearAllPoints(); capture:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); capture.blocker:Show(); capture:Show(); capture:EnableKeyboard(true)
 end
@@ -2245,7 +2245,7 @@ function ns:StartTargetDrag(id, row, available)
     self:UpdateTargetDragGhost(drag)
     drag:SetScript("OnUpdate", drag._ticker)
     drag:Show(); drag.ghost:Show(); self:UpdateTargetDrag()
-    panel.active:SetText("Drop this frame onto its visibility parent")
+    panel.active:SetText("Drop on its parent")
     panel.active:SetTextColor(unpack(C.teal))
 end
 
@@ -2284,7 +2284,7 @@ function ns:FinishTargetDrag()
     if childID and parentID and childID ~= parentID then
         local ok, reason = self:AddVisibilityLink(parentID, childID)
         self:RenderOptions()
-        panel.active:SetText(reason or (ok and "Visibility parent linked" or "Unable to link frames"))
+        panel.active:SetText(reason or (ok and "Linked" or "Link failed"))
         panel.active:SetTextColor(unpack(ok and C.teal or C.amber))
         return
     end
@@ -2479,13 +2479,13 @@ function ns:CreateProfilePicker()
     ApplyEUIObject("panel", picker, { inset = true })
     table.insert(UISpecialFrames, picker:GetName())
     picker.title = Text(picker, "GameFontNormal", "Profiles", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
-    picker.copy = Text(picker, "GameFontHighlightSmall", "Switch profiles or copy the active one.", C.muted)
+    picker.copy = Text(picker, "GameFontHighlightSmall", "", C.muted)
     picker.copy:SetPoint("TOPLEFT", 14, -39); picker.copy:SetPoint("TOPRIGHT", -14, -39)
     picker.copy:SetJustifyH("LEFT"); picker.copy:SetWordWrap(false)
     picker.export = Button(picker, "Export", 58, function() ns:OpenProfileTransfer("export") end); picker.export:SetPoint("TOPRIGHT", -43, -11)
     picker.import = Button(picker, "Import", 58, function() ns:OpenProfileTransfer("import") end); picker.import:SetPoint("RIGHT", picker.export, "LEFT", -5, 0)
     local close = CloseButton(picker); close:SetPoint("TOPRIGHT", -9, -9)
-    picker.inputEnabled = Button(picker, "Automatic input-mode profiles: Off", 344, function()
+    picker.inputEnabled = Button(picker, "Profile by input: Off", 344, function()
         local settings = ns:GetInputModeProfileSettings()
         ns:SetInputModeProfilesEnabled(not settings.enabled)
         ns:RenderProfilePicker()
@@ -2507,12 +2507,12 @@ function ns:CreateProfilePicker()
     picker.inputKeyboard = Button(picker, "", 344, function() CycleInputProfile("keyboard") end)
     picker.inputKeyboard:SetPoint("TOPLEFT", 14, -123)
     local inputHelp = Text(picker, "GameFontHighlightSmall",
-        "Click to cycle profiles. Manual choices last until the next input mode change or reload. Cinematic stays active.", C.muted)
+        "", C.muted)
     inputHelp:SetPoint("TOPLEFT", 14, -153); inputHelp:SetPoint("TOPRIGHT", -14, -153)
     inputHelp:SetJustifyH("LEFT"); inputHelp:SetWordWrap(true)
-    SetTooltip(picker.inputEnabled, "Automatic input-mode profiles", "Follow Blizzard's controller or keyboard/mouse UI mode. Turning this off keeps your current profile.")
-    SetTooltip(picker.inputGamepad, "Gamepad", "Click to cycle existing profiles. Keep current leaves the active profile unchanged.")
-    SetTooltip(picker.inputKeyboard, "Keyboard/mouse", "Click to cycle existing profiles. Keep current leaves the active profile unchanged.")
+    SetTooltip(picker.inputEnabled, nil, nil)
+    SetTooltip(picker.inputGamepad, nil, nil)
+    SetTooltip(picker.inputKeyboard, nil, nil)
     local scroll = CreateFrame("ScrollFrame", nil, picker, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 14, -207); scroll:SetPoint("BOTTOMRIGHT", -29, 68); picker.scroll = scroll
     local content = CreateFrame("Frame", nil, scroll); content:SetSize(326, 1); scroll:SetScrollChild(content); content._rows = {}; picker.content = content
@@ -2587,11 +2587,11 @@ function ns:CreateProfileTransfer()
         validationToken = validationToken + 1
         local token = validationToken
         local value = self:GetText() or ""
-        if value == "" then SetStatus("Paste an exported profile.", C.muted); return end
+        if value == "" then SetStatus("Paste a profile", C.muted); return end
         local called, profile, summary = pcall(ns.ParseProfileImport, ns, value)
         if not called then SetStatus("Validation error: " .. tostring(profile), C.amber)
         elseif profile then
-            local note = summary.clipboardAdjusted and " Extra clipboard formatting was removed." or ""
+            local note = summary.clipboardAdjusted and "" or ""
             local skippedCount = summary.skippedTargets or 0
             local skipped = skippedCount > 0 and (" " .. skippedCount .. " unavailable frame" .. (skippedCount == 1 and "" or "s") .. " skipped.") or ""
             SetStatus("Ready: " .. summary.targets .. " frames, " .. summary.reactions .. " reactions." .. skipped .. note, C.teal)
@@ -2638,7 +2638,7 @@ function ns:OpenProfileTransfer(mode)
     self:HideAppearancePicker(); transfer.blocker:Show(); transfer:Show()
     if mode == "export" then
         transfer.title:SetText("Export " .. ShortText(FrameGambitDB.profile, 24))
-        transfer.copy:SetText("Copy this text to share or back up this profile.")
+        transfer.copy:SetText("")
         transfer.action:GetFontString():SetText("Select all")
         transfer.action:SetScript("OnClick", function() transfer.text:SetFocus(); transfer.text:HighlightText() end)
         local text, reason = self:ExportProfile()
@@ -2647,17 +2647,17 @@ function ns:OpenProfileTransfer(mode)
             return
         end
         transfer.text:SetText(text); transfer.text:SetFocus(); transfer.text:HighlightText()
-        transfer.SetStatus("Press Ctrl+C to copy the selected export.", C.teal)
+        transfer.SetStatus("Ctrl+C to copy", C.teal)
     else
         transfer.title:SetText("Import profile")
-        transfer.copy:SetText("Paste an exported profile and choose a new name.")
+        transfer.copy:SetText("")
         transfer.nameLabel:Show(); transfer.name:Show()
         local used = {}
         for _, profileName in ipairs(self:GetProfileNames()) do used[profileName:lower()] = true end
         local suggested, suffix = "Imported profile", 2
         while used[suggested:lower()] do suggested, suffix = "Imported profile " .. suffix, suffix + 1 end
         transfer.name:SetText(suggested); transfer.name:HighlightText()
-        transfer.SetStatus("Paste an exported profile.", C.muted)
+        transfer.SetStatus("Paste a profile", C.muted)
         transfer.action:GetFontString():SetText("Import profile")
         transfer.action:SetScript("OnClick", function()
             local importedName = transfer.name:GetText()
@@ -2669,7 +2669,7 @@ function ns:OpenProfileTransfer(mode)
             if ok then
                 local skippedCount = result.skippedTargets or 0
                 local skipped = skippedCount > 0 and ("; skipped " .. skippedCount .. " unavailable frame" .. (skippedCount == 1 and "" or "s")) or ""
-                transfer.resultMessage = "Imported " .. importedName .. " (" .. result.targets .. " frames, " .. result.reactions .. " reactions" .. skipped .. "). Select it to use it."
+                transfer.resultMessage = "Imported " .. importedName .. " (" .. result.targets .. " frames, " .. result.reactions .. " reactions" .. skipped .. ")"
                 transfer:Hide()
             else
                 transfer.SetStatus(result, C.amber)
@@ -2698,7 +2698,7 @@ function ns:CreateProfileDeleteConfirm()
         confirm:Hide()
         if ns.ProfilePicker and ns.ProfilePicker:IsShown() then
             ns:RenderProfilePicker()
-            ns.ProfilePicker.status:SetText(ok and (reason or "Profile deleted.") or reason)
+            ns.ProfilePicker.status:SetText(ok and (reason or "Deleted") or reason)
             ns.ProfilePicker.status:SetTextColor(unpack(ok and C.teal or C.amber))
         end
     end, true)
@@ -2710,7 +2710,7 @@ function ns:OpenProfileDeleteConfirm(name)
     self:CreateProfileDeleteConfirm()
     local confirm = self.ProfileDeleteConfirm
     confirm.profileName = name
-    confirm.copy:SetText("Delete '" .. ShortText(name, 24) .. "'? This cannot be undone.")
+    confirm.copy:SetText("Delete '" .. ShortText(name, 24) .. "'?")
     confirm:ClearAllPoints(); confirm:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); confirm.blocker:Show(); confirm:Show()
 end
@@ -2719,7 +2719,7 @@ function ns:RenderProfilePicker()
     local picker = self.ProfilePicker
     if not picker or not picker:IsShown() then return end
     local inputSettings = self:GetInputModeProfileSettings()
-    picker.inputEnabled:GetFontString():SetText("Automatic input-mode profiles: " .. (inputSettings.enabled and "On" or "Off"))
+    picker.inputEnabled:GetFontString():SetText("Profile by input: " .. (inputSettings.enabled and "On" or "Off"))
     picker.inputGamepad:GetFontString():SetText("Gamepad: " .. (inputSettings.gamepad or "Keep current"))
     picker.inputKeyboard:GetFontString():SetText("Keyboard/mouse: " .. (inputSettings.keyboard or "Keep current"))
     ClearChildren(picker.content)
@@ -2764,9 +2764,9 @@ function ns:OpenProfilePicker()
     self:CreateProfilePicker()
     local picker = self.ProfilePicker
     if self:IsCinematicActive() then
-        picker.status:SetText("Choose a normal profile to leave Cinematic.")
+        picker.status:SetText("")
     else
-        picker.status:SetText("New profiles start as a copy of " .. (FrameGambitDB.profile or "Default") .. ".")
+        picker.status:SetText("")
     end
     picker.status:SetTextColor(unpack(C.muted))
     picker:ClearAllPoints(); picker:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
@@ -2795,15 +2795,15 @@ function ns:RefreshActiveState()
     -- then write the font string only when it actually changed.
     local text, color
     if state.pendingRestore then
-        text, color = "Waiting to restore previous profile", C.amber
+        text, color = "Restoring profile…", C.amber
     elseif state.unavailable then
         text, color = "Unavailable", C.amber
     elseif state.hostHidden then
         text, color = "Hidden by its addon", C.amber
     elseif ns.runtime.percentageCurveErrors and ns.runtime.percentageCurveErrors[panel.selected] then
-        text, color = "Health/mana curve unavailable on this client", C.amber
+        text, color = "Health/mana not in this client", C.amber
     elseif state.protectedPercentage then
-        text, color = "Health/mana opacity controlled by the game", C.teal
+        text, color = "Health/mana set by the game", C.teal
     elseif state.reaction then
         local count = #(state.reaction.requirements or {})
         local info = ns.CONDITION_INFO[state.reaction.condition]
@@ -2878,7 +2878,7 @@ function ns:CreateReactionPalette()
     ApplyEUIObject("panel", palette, { inset = true })
     table.insert(UISpecialFrames, palette:GetName())
     palette.title = Text(palette, "GameFontNormal", "Add a reaction", C.accent); palette.title:SetPoint("TOPLEFT", 14, -13)
-    palette.context = Text(palette, "GameFontHighlightSmall", "First matching row wins.", C.muted); palette.context:SetPoint("TOPLEFT", palette.title, "BOTTOMLEFT", 0, -3)
+    palette.context = Text(palette, "GameFontHighlightSmall", "First match wins", C.muted); palette.context:SetPoint("TOPLEFT", palette.title, "BOTTOMLEFT", 0, -3)
     palette.context:SetPoint("RIGHT", -40, 0); palette.context:SetJustifyH("LEFT"); palette.context:SetWordWrap(true)
     local close = CloseButton(palette); close:SetPoint("TOPRIGHT", -9, -9)
     palette.done = Button(palette, "Done", 66, function() palette:Hide() end, true); palette.done:SetPoint("BOTTOMRIGHT", -12, 11); palette.done:Hide()
@@ -2944,7 +2944,7 @@ function ns:CreateReactionPalette()
             self._hover = false; PaintCategoryTab(self)
             GameTooltip_Hide()
         end)
-        SetTooltip(tab, "Category: " .. category.label, "Browse this group of conditions.")
+        SetTooltip(tab, category.label, nil)
         PaintCategoryTab(tab)
         palette.tabs[category.id] = tab
     end
@@ -2960,7 +2960,7 @@ function ns:CreateReactionPalette()
     search.icon = search:CreateTexture(nil, "OVERLAY")
     search.icon:SetTexture("Interface\\Common\\UI-Searchbox-Icon"); search.icon:SetSize(14, 14); search.icon:SetPoint("LEFT", 6, -1)
     search.icon:SetVertexColor(unpack(C.muted))
-    search.hint = Text(search, "GameFontHighlightSmall", "Search conditions...", C.muted)
+    search.hint = Text(search, "GameFontHighlightSmall", "Search", C.muted)
     search.hint:SetPoint("LEFT", 22, 0)
     search.clear = CreateFrame("Button", nil, search)
     search.clear:SetSize(18, 18); search.clear:SetPoint("RIGHT", -3, 0)
@@ -2987,7 +2987,7 @@ function ns:CreateReactionPalette()
         if self:GetText() ~= "" then self:SetText("") else self:ClearFocus(); palette:Hide() end
     end)
     palette.search = search
-    palette.empty = Text(palette.content, "GameFontHighlightSmall", "No conditions match. Try a shorter word.", C.muted)
+    palette.empty = Text(palette.content, "GameFontHighlightSmall", "No matches", C.muted)
     palette.empty:SetPoint("TOP", search, "BOTTOM", 0, -24); palette.empty:Hide()
     for _, category in ipairs(self.CONDITION_CATEGORY_ORDER) do
         for key, info in pairs(self.CONDITION_INFO) do
@@ -3005,12 +3005,12 @@ function ns:CreateReactionPalette()
                         elseif conditionKey ~= reaction.condition then
                             local conflict = ns:GetRequirementConflict(reaction, conditionKey)
                             if conflict then
-                                palette.context:SetText("Cannot combine " .. ConditionLabel(conditionKey) .. " with " .. ConditionLabel(conflict) .. " in the same AND requirement."); ns:LayoutReactionPalette()
+                                palette.context:SetText("Conflicts with " .. ConditionLabel(conflict)); ns:LayoutReactionPalette()
                                 return
                             end
                             if reaction.condition == "mouseover" and #reaction.requirements == 0
                                 and ns:RequiresUnconditionalMouseover(targetID) and ns:CountUnconditionalMouseover(settings) <= 1 then
-                                palette.context:SetText("This reveal-group member needs one unconditional Mouseover reaction. Add another Mouseover row first."); ns:LayoutReactionPalette()
+                                palette.context:SetText("Hover group needs a Mouseover row"); ns:LayoutReactionPalette()
                                 return
                             end
                             reaction.requirements[#reaction.requirements + 1] = conditionKey
@@ -3019,7 +3019,7 @@ function ns:CreateReactionPalette()
                         ns:ShowReactionCategory(palette.categoryID)
                     elseif settings then
                         if #settings.reactions >= ns.MAX_REACTIONS_PER_TARGET then
-                            palette.context:SetText("Each frame supports up to " .. ns.MAX_REACTIONS_PER_TARGET .. " reactions."); ns:LayoutReactionPalette()
+                            palette.context:SetText("Max " .. ns.MAX_REACTIONS_PER_TARGET .. " reactions"); ns:LayoutReactionPalette()
                             return
                         end
                         settings.reactions[#settings.reactions + 1] = {
@@ -3043,7 +3043,7 @@ function ns:CreateReactionPalette()
                         if ns.Tutorial and ns.RefreshTutorial then ns:RefreshTutorial() end
                     end
                 end)
-                local tooltipBody = conditionInfo.help or (conditionInfo.kind == "moment" and "Temporarily reacts after this event." or (conditionInfo.restricted and "Unavailable or secret values safely count as false." or "A live state reaction."))
+                local tooltipBody = conditionInfo.help
                 SetTooltip(button, conditionInfo.label, tooltipBody)
                 button.defaultTooltipTitle, button.defaultTooltipBody = conditionInfo.label, tooltipBody
                 button.conditionKey, button.category = conditionKey, category.id
@@ -3119,7 +3119,7 @@ function ns:OpenPercentagePicker(id, reaction)
             if not picker.reaction then return end
             local value = tonumber(picker.input:GetText())
             if not value or value ~= value or value < 0 or value > 100 then
-                picker.error:SetText("Enter a number from 0 to 100."); return
+                picker.error:SetText("0 to 100"); return
             end
             local settings = ns:GetTargetSettings(picker.targetID)
             local stillPresent = false
@@ -3152,9 +3152,9 @@ function ns:OpenPercentagePicker(id, reaction)
     picker.memberLabel:SetShown(picker.isParty)
     for _, button in ipairs(picker.memberButtons) do button:SetShown(picker.isParty) end
     picker.RefreshMember()
-    picker.context:SetText(picker.isParty
-        and "Any checks the other party members. Numbers select displayed party frames 1-5, which may include you. Uses the unrounded percentage; unavailable values do not match."
-        or self.CONDITION_INFO[reaction.condition].help)
+    picker.context:SetText((picker.isParty
+        and "Any: other members. 1-5: frame slots"
+        or self.CONDITION_INFO[reaction.condition].help) or "")
     picker.input:SetText(tostring(normalized.percentageThreshold)); picker.error:SetText("")
     picker.RefreshComparison()
     picker:ClearAllPoints(); picker:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
@@ -3175,7 +3175,7 @@ function ns:OpenChatTextPicker(id, reaction)
         ApplyEUIObject("panel", picker, { inset = true }); table.insert(UISpecialFrames, picker:GetName())
         picker.title = Text(picker, "GameFontNormal", "Chat contains text", C.accent)
         picker.title:SetPoint("TOPLEFT", 14, -13)
-        picker.context = Text(picker, "GameFontHighlightSmall", "Enter a name, item, dungeon, or phrase. Matches new messages in any chat window, regardless of capitalization.", C.muted)
+        picker.context = Text(picker, "GameFontHighlightSmall", "Any case", C.muted)
         picker.context:SetPoint("TOPLEFT", 14, -39); picker.context:SetPoint("RIGHT", -25, 0)
         picker.context:SetJustifyH("LEFT"); picker.context:SetWordWrap(true)
         local close = CloseButton(picker); close:SetPoint("TOPRIGHT", -9, -9)
@@ -3192,7 +3192,7 @@ function ns:OpenChatTextPicker(id, reaction)
             picker:Hide()
         end, true)
         save:SetPoint("BOTTOMRIGHT", -14, 14)
-        local hint = Text(picker, "GameFontHighlightSmall", "Blank text never triggers.", C.muted)
+        local hint = Text(picker, "GameFontHighlightSmall", "", C.muted)
         hint:SetPoint("BOTTOMLEFT", 14, 22)
         picker.input:SetScript("OnEnterPressed", function() save:Click() end)
         picker.input:SetScript("OnEscapePressed", function() picker:Hide() end)
@@ -3222,7 +3222,7 @@ function ns:CreateFormPicker()
     ApplyEUIObject("panel", picker, { inset = true })
     table.insert(UISpecialFrames, picker:GetName())
     picker.title = Text(picker, "GameFontNormal", "Choose form", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
-    picker.context = Text(picker, "GameFontHighlightSmall", "Unavailable forms are dimmed but remain saved for shared profiles.", C.muted)
+    picker.context = Text(picker, "GameFontHighlightSmall", "", C.muted)
     picker.context:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -3); picker.context:SetPoint("RIGHT", -35, 0); picker.context:SetJustifyH("LEFT"); picker.context:SetWordWrap(true)
     local close = CloseButton(picker); close:SetPoint("TOPRIGHT", -9, -9)
     picker.buttons = {}
@@ -3258,9 +3258,7 @@ function ns:OpenFormPicker(id, reaction)
         SetFallbackBackdrop(button, selected and C.teal or C.cardAlt)
         button:GetFontString():SetTextColor(unpack(SelectedButtonText(button, selected, C.accent)))
         button:SetAlpha(available and 1 or 0.42)
-        SetTooltip(button, option.label, available
-            and "Available on your current class/build."
-            or "Unavailable on your current class/build. It can still be stored for another profile or build.")
+        SetTooltip(button, option.label, not available and "Not on this character" or nil)
     end
     picker:ClearAllPoints(); picker:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); picker.blocker:Show(); picker:Show()
@@ -3277,7 +3275,7 @@ function ns:CreateSpecPicker()
     ApplyEUIObject("panel", picker, { inset = true })
     table.insert(UISpecialFrames, picker:GetName())
     picker.title = Text(picker, "GameFontNormal", "Choose class", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
-    picker.context = Text(picker, "GameFontHighlightSmall", "Choose a class, then a talent build. Other classes remain available for shared profiles.", C.muted)
+    picker.context = Text(picker, "GameFontHighlightSmall", "", C.muted)
     picker.context:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -3); picker.context:SetPoint("RIGHT", -35, 0); picker.context:SetJustifyH("LEFT"); picker.context:SetWordWrap(true)
     picker.close = CloseButton(picker); picker.close:SetPoint("TOPRIGHT", -9, -9)
     picker.back = Button(picker, "Back", 56, function()
@@ -3299,7 +3297,7 @@ function ns:ShowSpecPickerChoices()
     local classID = picker.classID
     local choices = classID and (self.SPECS_BY_CLASS[classID] or {}) or (self.CLASS_OPTIONS or {})
     picker.title:SetText(classID and "Choose build" or "Choose class")
-    picker.context:SetText(classID and "Choose the talent build this reaction should match." or "Choose a class, then a talent build. Other classes remain available for shared profiles.")
+    picker.context:SetText(classID and "" or "")
     picker.back:SetShown(classID ~= nil)
     for index, choice in ipairs(choices) do
         local selectedChoice = choice
@@ -3389,10 +3387,10 @@ function ns:ShowReactionCategory(categoryID)
         tab._selected = not searching and id == categoryID
         tab._dimmed = searching and not matchesByCategory[id]
         tab.requirementMarker:SetShown(hasRequirements)
-        tab._tooltipTitle = "Category: " .. tab.categoryLabel
+        tab._tooltipTitle = tab.categoryLabel
         tab._tooltipBody = hasRequirements
-            and "Contains an AND requirement already selected for this reaction."
-            or "Browse this group of conditions."
+            and "Has a selected requirement"
+            or nil
         PaintCategoryTab(tab)
     end
     -- Size to the fullest category in this mode so switching tabs never
@@ -3441,14 +3439,14 @@ function ns:ShowReactionCategory(categoryID)
             button:GetFontString():SetTextColor(1, 1, 1, 1)
             button:SetEnabled(true); button:SetAlpha(1)
             button._tooltipTitle = "Incompatible AND requirement"
-            button._tooltipBody = "Cannot combine with " .. ConditionLabel(conflictWith) .. ". Click to remove this requirement."
+            button._tooltipBody = "Conflicts with " .. ConditionLabel(conflictWith)
         elseif incompatible then
             button._selected, button._selectedColor = false, nil
             SetFallbackBackdrop(button, C.cardAlt, C.border)
             button:GetFontString():SetTextColor(unpack(C.muted))
             button:SetEnabled(false); button:SetAlpha(0.36)
-            button._tooltipTitle = "Unavailable with selected requirements"
-            button._tooltipBody = "Cannot combine with " .. ConditionLabel(conflictWith) .. " in the same AND requirement."
+            button._tooltipTitle = "Unavailable"
+            button._tooltipBody = "Conflicts with " .. ConditionLabel(conflictWith)
         else
             button._selected, button._selectedColor = selected and true or false, C.teal
             SetFallbackBackdrop(button, selected and C.teal or C.cardAlt, C.border)
@@ -3488,7 +3486,7 @@ function ns:OpenReactionPalette(id)
     palette.targetID, palette.mode, palette.reaction = id, "reaction", nil
     palette.done:Hide()
     palette.title:SetText("Add a reaction")
-    palette.context:SetText("The first matching reaction wins. Add requirements when two reactions need different contexts.")
+    palette.context:SetText("First match wins")
     palette:ClearAllPoints(); palette:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     palette.query = ""; palette.search:SetText("")
     self:HideAppearancePicker(); palette.blocker:Show(); palette:Show()
@@ -3505,7 +3503,7 @@ function ns:OpenRequirementPalette(id, reaction)
     local palette = self.ReactionPalette
     palette.targetID, palette.mode, palette.reaction = id, "requirements", reaction
     palette.title:SetText("Add requirements")
-    palette.context:SetText("All selected conditions must be true for " .. ConditionLabel(reaction.condition) .. ".")
+    palette.context:SetText("All must be true")
     palette.done:Show()
     palette:ClearAllPoints(); palette:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     palette.query = ""; palette.search:SetText("")
@@ -3526,7 +3524,7 @@ function ns:CreateConnectionPicker()
     table.insert(UISpecialFrames, picker:GetName())
     picker.title = Text(picker, "GameFontNormal", "Connections", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
     picker.copy = Text(picker, "GameFontHighlightSmall", "", C.muted); picker.copy:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -4); picker.copy:SetPoint("RIGHT", -14, 0); picker.copy:SetJustifyH("LEFT")
-    picker.status = Text(picker, "GameFontHighlightSmall", "Click frames to add or remove them.", C.teal); picker.status:SetPoint("TOPLEFT", picker.copy, "BOTTOMLEFT", 0, -6)
+    picker.status = Text(picker, "GameFontHighlightSmall", "", C.teal); picker.status:SetPoint("TOPLEFT", picker.copy, "BOTTOMLEFT", 0, -6)
     picker.done = Button(picker, "Done", 66, function() picker:Hide() end, true); picker.done:SetPoint("BOTTOMRIGHT", -12, 12)
     picker.close = CloseButton(picker); picker.close:SetPoint("TOPRIGHT", -9, -9)
     local search = CreateFrame("EditBox", nil, picker, "BackdropTemplate")
@@ -3534,7 +3532,7 @@ function ns:CreateConnectionPicker()
     search:SetAutoFocus(false); search:SetFontObject(GameFontHighlightSmall)
     search:SetTextInsets(8, 8, 0, 0); search:SetTextColor(unpack(C.inputText)); TrackTheme(search, "inputText"); Backdrop(search, C.cardAlt, C.border)
     ApplyEUIObject("edit", search)
-    local searchHint = Text(search, "GameFontHighlightSmall", "Find a frame...", C.muted)
+    local searchHint = Text(search, "GameFontHighlightSmall", "Search", C.muted)
     searchHint:SetPoint("LEFT", 8, 0); search.hint = searchHint
     search:SetScript("OnEditFocusGained", function() searchHint:Hide() end)
     search:SetScript("OnEditFocusLost", function() if search:GetText() == "" then searchHint:Show() end end)
@@ -3557,7 +3555,7 @@ function ns:CreateConnectionPicker()
     picker.content:SetSize(382, 1)
     scroll:SetScrollChild(picker.content)
     picker.buttons = {}
-    picker.empty = Text(picker.content, "GameFontHighlightSmall", "No matching frames.", C.muted)
+    picker.empty = Text(picker.content, "GameFontHighlightSmall", "No matches", C.muted)
     picker.empty:SetPoint("TOP", 0, -10); picker.empty:Hide()
     picker:SetScript("OnHide", function()
         picker.blocker:Hide()
@@ -3574,10 +3572,10 @@ function ns:RenderConnectionPicker()
     if not self.TargetByID[sourceID] then picker:Hide(); return end
     picker.title:SetText(mode == "group" and "Hover group" or mode == "visibility" and "Visibility children" or "Linked children")
     picker.copy:SetText(mode == "group"
-        and "Hover any selected frame to reveal the group together."
+        and "Hover one, show all"
         or mode == "visibility"
-            and "A child's own reactions run first. Otherwise, it follows this frame."
-            or "Hover the source to reveal every selected child. A child reveals itself only when it has its own Mouseover rule.")
+            and "Children follow this frame"
+            or "Hover this frame, show children")
     local group = mode == "group" and select(2, self:GetRevealGroup(sourceID)) or nil
     local children = mode == "link" and self:GetLinkedChildren(sourceID) or nil
     local visibilityChildren = mode == "visibility" and self:GetVisibilityChildren(sourceID) or nil
@@ -3634,7 +3632,7 @@ function ns:RenderConnectionPicker()
                     return
                 end
             end
-            picker.status:SetText("Click frames to add or remove them."); picker.status:SetTextColor(unpack(C.teal))
+            picker.status:SetText(""); picker.status:SetTextColor(unpack(C.teal))
             ns:RenderConnectionPicker()
         end)
     end
@@ -3711,7 +3709,7 @@ function ns:CreateOpacityPicker()
         picker:UpdateVisuals(picker.slider:GetValue())
     end)
     picker.keep:SetPoint("BOTTOMLEFT", 12, 12); picker.keep:Hide()
-    SetTooltip(picker.keep, "Keep opacity", "This rule doesn't change opacity: it comes from the next matching rule or Otherwise. Choosing an opacity turns this off.")
+    SetTooltip(picker.keep, nil, nil)
     picker.note = Text(picker, "GameFontHighlightSmall", "", C.amber)
     picker.note:SetPoint("TOPLEFT", 16, -108); picker.note:SetWidth(262); picker.note:SetJustifyH("LEFT"); picker.note:SetWordWrap(true)
     picker.slider:SetScript("OnValueChanged", function(_, value)
@@ -3815,11 +3813,11 @@ function ns:CreateLayoutSizePicker()
         end)
         cell:SetSize(18, 18)
         cell:SetPoint("TOPLEFT", 96 + ((index - 1) % 3) * 21, -110 - math.floor((index - 1) / 3) * 21)
-        SetTooltip(cell, "Grow from " .. entry[2], "The point of this frame that stays where it is when the size changes. One setting for all of this frame's sizes.")
+        SetTooltip(cell, "Grow from " .. entry[2], nil)
         picker.pivots[point] = cell
     end
     picker.same = Button(picker, "Same size", 86, function() picker:Choose(nil) end); picker.same:SetPoint("BOTTOMLEFT", 12, 12)
-    SetTooltip(picker.same, "Same size", "This rule doesn't change the size. Later rules or Otherwise decide it.")
+    SetTooltip(picker.same, nil, nil)
     function picker:UpdateVisuals(value)
         self.value:SetText(value and ScaleText(value) or "Same size")
         for _, preset in ipairs(self.presets) do
@@ -3873,7 +3871,7 @@ function ns:CreateLayoutPositionPicker()
         local dx, dy = move[2], move[3]
         local button = Button(picker, "", 30, function() picker:Nudge(dx, dy) end)
         button:SetPoint("TOPLEFT", 16 + (index - 1) * 34, -44); DrawTriangle(button, move[1])
-        SetTooltip(button, move[4], "Moves by the step size. Change the step for finer or bigger moves.")
+        SetTooltip(button, move[4], nil)
         picker.moves[index] = button
     end
     picker.step = Button(picker, "", 64, function()
@@ -3881,15 +3879,15 @@ function ns:CreateLayoutPositionPicker()
         picker:UpdateVisuals()
     end)
     picker.step:SetPoint("TOPLEFT", 156, -44)
-    SetTooltip(picker.step, "Step size", "Choose how far each arrow moves the frame: 1, 10 or 50.")
+    SetTooltip(picker.step, "Step size", nil)
     picker.reset = Button(picker, "Reset", 58, function()
         if not picker.apply then return end
         picker.x, picker.y = 0, 0
         picker:UpdateVisuals(); picker.apply(0, 0)
     end)
     picker.reset:SetPoint("TOPLEFT", 224, -44)
-    SetTooltip(picker.reset, "Reset", "Back to the frame's normal place.")
-    picker.help = Text(picker, "GameFontHighlightSmall", "Moves the frame from its normal place. Protected frames move only outside combat.", C.muted)
+    SetTooltip(picker.reset, nil, nil)
+    picker.help = Text(picker, "GameFontHighlightSmall", "Protected frames: not in combat", C.muted)
     picker.help:SetPoint("TOPLEFT", 16, -78); picker.help:SetWidth(262); picker.help:SetJustifyH("LEFT"); picker.help:SetWordWrap(true)
     picker.same = Button(picker, "Same position", 100, function()
         if not picker.apply then return end
@@ -3897,7 +3895,7 @@ function ns:CreateLayoutPositionPicker()
         picker:UpdateVisuals(); picker.apply(nil, nil)
     end)
     picker.same:SetPoint("BOTTOMLEFT", 12, 12)
-    SetTooltip(picker.same, "Same position", "This rule doesn't move the frame. Later rules or Otherwise decide where it sits.")
+    SetTooltip(picker.same, nil, nil)
     function picker:UpdateVisuals()
         self.value:SetText(LayoutPositionText(self.x, self.y, not self.allowSame))
         self.step:GetFontString():SetText("Step " .. self.stepSize)
@@ -3938,7 +3936,7 @@ function ns:ConfigureLayoutLine(row, id, settings, reaction, available, open, le
             end
         else
             local supported, reason = ns:GetFrameLayoutSupport(id)
-            if not supported then ns:ShowEditorNotice(reason or "Frame Gambit can only fade this frame.", "amber"); return end
+            if not supported then ns:ShowEditorNotice(reason or "Fade only", "amber"); return end
             if isRest then settings.restLayoutLine = true else reaction.layoutLine = true end
         end
         ns:InvalidateTargetTransition(id)
@@ -3975,9 +3973,7 @@ function ns:ConfigureLayoutLine(row, id, settings, reaction, available, open, le
             if row.refitLayout then row.refitLayout() end
         end, settings, function() ns:InvalidateTargetTransition(id) end)
     end)
-    SetTooltip(row.size, "Size", isRest
-        and "The frame's size when no rule sets one. Normal size is the size its own settings give it."
-        or "The size while this rule matches. Shown as Size until you choose one; then later rules or Otherwise decide it.")
+    SetTooltip(row.size, "Size", nil)
 
     local canMove = isRest or ns:LayoutReactionCanMove(reaction)
     local function PositionValue()
@@ -4006,10 +4002,7 @@ function ns:ConfigureLayoutLine(row, id, settings, reaction, available, open, le
             ns:InvalidateTargetTransition(id)
         end)
     end)
-    SetTooltip(row.position, "Position", not canMove
-        and "Mouseover rules change size only, so the frame never moves away from the cursor."
-        or (isRest and "Where the frame sits when no rule moves it, measured from its normal place."
-        or "Where the frame sits while this rule matches. Shown as Move until you choose one; then later rules or Otherwise decide it. x is right, y is up."))
+    SetTooltip(row.position, "Position", not canMove and "Mouseover: size only" or "x right, y up")
 
     -- Buttons are as wide as their text; the group sits beside the toggle
     -- when it fits there and otherwise on a second line.
@@ -4063,11 +4056,11 @@ function ns:GetLayoutStatusNote(id)
     if not settings or not self:TargetUsesLayout(settings) then return nil end
     local record, reason = self:GetFrameLayoutState(id)
     if record then
-        if record.waiting then return "size waits for combat to end" end
-        if record.paused == "editMode" then return "normal size while Edit Mode is open" end
+        if record.waiting then return "size after combat" end
+        if record.paused == "editMode" then return "normal in Edit Mode" end
         return nil
     end
-    if reason then return "size and position can't change here" end
+    if reason then return "fade only" end
     return nil
 end
 
@@ -4142,7 +4135,7 @@ function ns:CreateTimingPicker()
     ApplyEUIObject("panel", picker, { inset = true, listArt = true })
     table.insert(UISpecialFrames, picker:GetName())
     picker.title = Text(picker, "GameFontNormal", "Frame timing", C.accent); picker.title:SetPoint("TOPLEFT", 14, -13)
-    picker.help = Text(picker, "GameFontHighlightSmall", "Applies to this frame only.", C.muted); picker.help:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -3); picker.help:SetWidth(276); picker.help:SetJustifyH("LEFT"); picker.help:SetWordWrap(false)
+    picker.help = Text(picker, "GameFontHighlightSmall", "", C.muted); picker.help:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -3); picker.help:SetWidth(276); picker.help:SetJustifyH("LEFT"); picker.help:SetWordWrap(false)
     local close = CloseButton(picker); close:SetPoint("TOPRIGHT", -9, -9)
     picker.fadeLabel = Text(picker, "GameFontHighlightSmall", "Fade-in time", C.teal); picker.fadeLabel:SetPoint("TOPLEFT", 16, -58)
     picker.fadeValue = Text(picker, "GameFontHighlightSmall", "", C.teal); picker.fadeValue:SetPoint("TOPRIGHT", -18, -58)
@@ -4203,9 +4196,9 @@ function ns:OpenTimingPicker(id, settings)
     picker.targetID, picker.loading = id, true
     picker.hostTiming = target and target.timingOwner == "host" or false
     picker.help:SetText(picker.hostTiming
-        and (target.timingNote or "This frame controls its own fade animation. Frame Gambit controls only the wait before fading.")
-        or (ns.TargetUsesLayout and ns:TargetUsesLayout(settings) and "Also used for size and position changes."
-        or "Applies to this frame only."))
+        and (target.timingNote or "Fade speed set by its addon")
+        or (ns.TargetUsesLayout and ns:TargetUsesLayout(settings) and "Also for size and position"
+        or ""))
     picker.fadeLabel:SetText(picker.hostTiming and (target.timingLabel or "Host fade") or "Fade-in time")
     picker.fade:SetEnabled(not picker.hostTiming)
     picker.fade:SetAlpha(picker.hostTiming and 0.35 or 1)
@@ -4352,11 +4345,11 @@ function ns:RenderTargetRail()
     if shown == 0 then
         local empty = panel.targetContent.empty
         if not empty then
-            empty = Text(panel.targetContent, "GameFontHighlightSmall", "No supported frames match this filter.", C.muted)
+            empty = Text(panel.targetContent, "GameFontHighlightSmall", "No frames", C.muted)
             empty:SetPoint("TOPLEFT", 7, 0); empty:SetWidth(154); empty:SetJustifyH("LEFT"); empty:SetWordWrap(true)
             panel.targetContent.empty = empty
         end
-        empty:SetText("No frames match this search.")
+        empty:SetText("No matches")
         empty:Show(); panel.targetContent._rows[#panel.targetContent._rows + 1] = empty; y = 38
     end
     panel.targetContent:SetHeight(math.max(1, y))
@@ -4385,10 +4378,7 @@ function ns:RenderOptions()
         panel.cinematic:SetShown(true)
         panel.cinematic:EnableMouse(true)
         panel.cinematic:GetFontString():SetText(cinematicActive and "Exit Cinematic" or "Edit Cinematic")
-        panel.cinematic._tooltipTitle = cinematicActive and "Exit Cinematic" or "Edit Cinematic"
-        panel.cinematic._tooltipBody = cinematicActive
-            and "Return to your previous profile."
-            or "Open the separate Cinematic profile."
+        panel.cinematic._tooltipTitle, panel.cinematic._tooltipBody = nil, nil
     end
     if not panel.selected or not self.TargetByID[panel.selected] then
         panel.selected = nil
@@ -4445,7 +4435,7 @@ function ns:RenderSelectedTarget(id)
     panel.pasteRules:GetFontString():SetTextColor(unpack(canPaste and C.teal or C.muted))
     if not target then
         panel.centerTitle:SetText("Choose a frame")
-        panel.centerHint:SetText("Pick from the list or select one on screen.")
+        panel.centerHint:SetText("")
         panel.active:SetText("")
         panel.active:SetTextColor(unpack(C.muted))
         local begin = Button(panel.reactionContent, "Pick a frame", 116, function() ns:StartPicker() end, true)
@@ -4458,13 +4448,13 @@ function ns:RenderSelectedTarget(id)
     local available, _, status, statusNote, statusTone = self:GetTargetAvailability(target)
     if not available then
         panel.centerTitle:SetText(target.label .. " is unavailable")
-        panel.centerHint:SetText("Open the related UI, then try again.")
+        panel.centerHint:SetText("")
         panel.active:SetText(status)
         panel.active:SetTextColor(unpack(C[statusTone] or C.amber))
         local detail = Text(panel.reactionContent, "GameFontHighlightSmall", statusNote, C.muted)
         detail:SetPoint("TOPLEFT", 0, 0); detail:SetPoint("RIGHT", -10, 0); detail:SetJustifyH("LEFT"); detail:SetWordWrap(true)
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = detail
-        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Your rules are still saved. Reset the frame if you no longer need them.", C.muted)
+        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Rules kept", C.muted)
         help:SetPoint("TOPLEFT", detail, "BOTTOMLEFT", 0, -10); help:SetPoint("RIGHT", -10, 0); help:SetJustifyH("LEFT"); help:SetWordWrap(true)
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = help
         panel.reactionContent:SetHeight(82)
@@ -4472,7 +4462,7 @@ function ns:RenderSelectedTarget(id)
         return
     end
     panel.centerTitle:SetText(target.label)
-    panel.centerHint:SetText("First matching rule applies")
+    panel.centerHint:SetText("First match wins")
     if not settings then
         panel.active:SetText("No rules yet")
         panel.active:SetTextColor(unpack(C.muted))
@@ -4483,7 +4473,7 @@ function ns:RenderSelectedTarget(id)
         panel.tutorialUseButton = use
         use:SetPoint("TOPLEFT", 0, 0)
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = use
-        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Starts visible on Mouseover and In combat, then fades to 12% Otherwise.", C.muted)
+        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Mouseover and In combat: 100%. Otherwise: 12%", C.muted)
         help:SetPoint("TOPLEFT", use, "BOTTOMLEFT", 0, -10)
         help:SetPoint("RIGHT", -10, 0)
         help:SetJustifyH("LEFT"); help:SetWordWrap(true)
@@ -4562,8 +4552,8 @@ function ns:RenderSelectedTarget(id)
             row.formPicker:SetScript("OnClick", function() ns:OpenChatTextPicker(id, reactionData) end)
             row.formExpected:SetCallback(nil)
         elseif isForm then
-            row.formExpected:SetTips("Form is active", "This row matches while the chosen form is active. Click to switch to inactive.",
-                "Form is inactive", "This row matches while the chosen form is available but inactive. Click to switch to active.")
+            row.formExpected:SetTips("Form is active", nil,
+                "Form is inactive", nil)
             local option = ns.FORM_BY_ID and ns.FORM_BY_ID[reactionData.formKey]
             local formAvailable = option and ns:GetFormActivity(reactionData.formKey) ~= nil
             row.formPicker:GetFontString():SetText(option and ("Form: " .. option.label) or "Form: choose one")
@@ -4579,8 +4569,8 @@ function ns:RenderSelectedTarget(id)
         elseif isMovement then
             local yesTitle = info and info.gamepad and (info.label .. ": Yes") or "Movement: Yes"
             local noTitle = info and info.gamepad and (info.label .. ": No") or "Movement: No"
-            row.formExpected:SetTips(yesTitle, (info and info.help or "This row matches while moving.") .. " Click to switch to No.",
-                noTitle, (info and info.help or "This row matches while stationary. Unknown movement matches neither answer.") .. " Click to switch to Yes.")
+            row.formExpected:SetTips(yesTitle, info and info.help,
+                noTitle, info and info.help)
             row.formPicker:SetScript("OnClick", nil)
             -- The answer button sits right after the full condition name.
             row.formExpected:ClearAllPoints(); row.formExpected:SetPoint("LEFT", row.requirements, "RIGHT", 6 + math.ceil(row.label:GetStringWidth()) + 10, 0)
@@ -4607,7 +4597,7 @@ function ns:RenderSelectedTarget(id)
         row.enabled:SetScript("OnClick", function()
             if isEnabled and reactionData.condition == "mouseover" and #(reactionData.requirements or {}) == 0
                 and ns:RequiresUnconditionalMouseover(id) and ns:CountUnconditionalMouseover(settings) <= 1 then
-                ns:ShowEditorNotice("This relationship needs one unconditional Mouseover reaction. Add another Mouseover row before turning this one off.", "amber")
+                ns:ShowEditorNotice("Relationship needs a Mouseover row", "amber")
                 return
             end
             reactionData.enabled = not isEnabled
@@ -4622,7 +4612,7 @@ function ns:RenderSelectedTarget(id)
                     set = function(keep)
                         if keep and reactionData.condition == "mouseover" and #(reactionData.requirements or {}) == 0
                             and ns:RequiresUnconditionalMouseover(id) and ns:CountUnconditionalMouseover(settings) <= 1 then
-                            return false, "This relationship needs one Mouseover reaction that sets opacity. Add another Mouseover row first."
+                            return false, "Relationship needs a Mouseover row"
                         end
                         reactionData.keepOpacity = keep or nil
                         ns:InvalidateTargetTransition(id)
@@ -4646,10 +4636,10 @@ function ns:RenderSelectedTarget(id)
                 conditions[#conditions + 1] = ConditionLabel(condition)
             end
             SetTooltip(row.requirements, "Requirements (" .. #conditions .. ")",
-                "Every listed condition must be true.")
+                "All must be true")
             row.requirements._tooltipLines = conditions
         else
-            SetTooltip(row.requirements, "Requirements", "Add conditions that must all be true.")
+            SetTooltip(row.requirements, "Requirements", nil)
             row.requirements._tooltipLines = nil
         end
         row.requirements:SetScript("OnClick", function() ns:OpenRequirementPalette(id, reactionData) end)
@@ -4675,7 +4665,7 @@ function ns:RenderSelectedTarget(id)
         row.remove:SetScript("OnClick", function()
             if reactionData.condition == "mouseover" and #(reactionData.requirements or {}) == 0
                 and ns:RequiresUnconditionalMouseover(id) and ns:CountUnconditionalMouseover(settings) <= 1 then
-                ns:ShowEditorNotice("This relationship needs one unconditional Mouseover reaction. Add another Mouseover row before removing this one.", "amber")
+                ns:ShowEditorNotice("Relationship needs a Mouseover row", "amber")
                 return
             end
             table.remove(settings.reactions, reactionIndex)
@@ -4708,7 +4698,7 @@ function ns:RenderSelectedTarget(id)
     restOpacity:SetEnabled(not visibilityParent)
     restOpacity:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     SetTooltip(restOpacity, visibilityParent and "Follows parent" or "Otherwise opacity",
-        visibilityParent and "When no local reaction matches, this frame follows its visibility parent." or "Choose a preset or drag for a precise value.")
+        nil)
     restOpacity:SetPoint("RIGHT", rest.line, "RIGHT", -8, 0); panel.reactionContent._rows[#panel.reactionContent._rows + 1] = rest
     AddLayoutControls(rest)
     rest.layoutToggle:SetPoint("RIGHT", restOpacity, "LEFT", -5, 0)
@@ -4736,15 +4726,15 @@ function ns:RenderSelectedTarget(id)
     local fade = Button(p, timingText, 100, OpenTiming)
     fade:SetPoint("TOPLEFT", 0, 0); fade:SetPoint("TOPRIGHT", 0, 0)
     p._rows[#p._rows + 1] = fade
-    local timingHelp = target.timingOwner == "host" and (target.timingNote or "This frame controls its own fade animation. Frame Gambit controls the wait before fading.")
-        or string.format("Fade in: %.2fs. Fade out: %.2fs. Set each duration and the wait before fading out.", settings.fadeInDuration, settings.fadeOutDuration)
+    local timingHelp = target.timingOwner == "host" and (target.timingNote or "Fade speed set by its addon")
+        or string.format("In %.2fs, out %.2fs", settings.fadeInDuration, settings.fadeOutDuration)
     SetTooltip(fade, target.timingLabel or "Frame timing", timingHelp)
     local preview
     preview = InspectorActionCard(p, fade, "eye", "Frame outline", panel.selectionOutlineEnabled ~= false, function()
         panel.selectionOutlineEnabled = not panel.selectionOutlineEnabled
         ns:RefreshSelectionOutline(); ns:RenderSelectedTarget(id)
     end)
-    SetTooltip(preview, "Frame outline", "Mark the selected frame without changing it.")
+    SetTooltip(preview, nil, nil)
     p._rows[#p._rows + 1] = preview
     panel.outlineButton = preview
     local relationshipAnchor = preview
@@ -4764,7 +4754,7 @@ function ns:RenderSelectedTarget(id)
                 modeAvailable, reason = ns:GetMinimapNativeMarkerAvailability(settings.nativeMarkerMode or "keep")
             end
             if modeAvailable == false then
-                ns:ShowEditorNotice(reason or "Native marker scale is unavailable on this client.", "amber")
+                ns:ShowEditorNotice(reason or "Not in this client", "amber")
                 return
             end
             local current = settings.nativeMarkerMode or "keep"
@@ -4779,9 +4769,9 @@ function ns:RenderSelectedTarget(id)
             if ns.UpdateMinimapStack then ns:UpdateMinimapStack(true) end
         end)
         markers:SetBackdropBorderColor(unpack(markerAvailable and mode == "keep" and C.border or C.amber))
-        SetTooltip(markers, "Experimental native markers",
-            markerAvailable and ("Choose how native minimap pins fade with the Minimap. Quest-area overlays stay under Blizzard and your map UI's control. Leave unchanged is safest." .. (markerReason and ("\n\n" .. markerReason) or ""))
-                or (markerReason or "WoW does not expose a safe marker scale on this client."))
+        SetTooltip(markers, "Minimap markers",
+            markerAvailable and ("Experimental. Leave unchanged is safest" .. (markerReason and ("\n\n" .. markerReason) or ""))
+                or (markerReason or "Not in this client"))
         markers:SetPoint("TOPLEFT", preview, "BOTTOMLEFT", 0, -6); p._rows[#p._rows + 1] = markers
         relationshipAnchor = markers
     end
@@ -4791,14 +4781,14 @@ function ns:RenderSelectedTarget(id)
     local currentVisibilityChildren = ns:GetVisibilityChildren(id)
     local currentVisibilityCount = 0; for _ in pairs(currentVisibilityChildren) do currentVisibilityCount = currentVisibilityCount + 1 end
     local group = InspectorActionCard(p, relationshipAnchor, "group", "Hover group", currentRevealGroup ~= nil, function() ns:OpenConnectionPicker("group", id) end)
-    SetTooltip(group, "Hover group", "Hover any member to reveal the whole group.")
+    SetTooltip(group, nil, nil)
     p._rows[#p._rows + 1] = group
     local link = InspectorActionCard(p, group, "link", "Linked child", currentChildCount > 0, function() ns:OpenConnectionPicker("link", id) end)
     p._rows[#p._rows + 1] = link
-    SetTooltip(link, "Linked child", "Hover this frame to reveal its children.")
+    SetTooltip(link, nil, nil)
     local visibility = InspectorActionCard(p, link, "visibility", "Visibility child", currentVisibilityCount > 0, function() ns:OpenConnectionPicker("visibility", id) end)
     p._rows[#p._rows + 1] = visibility
-    SetTooltip(visibility, "Visibility child", "The child's reactions run first. Otherwise, it follows this frame.")
+    SetTooltip(visibility, nil, nil)
     local previous = visibility
     -- Relationship status rows: one line each, fact on the left and its
     -- undo action on the right. Stacking label-over-button doubled the
@@ -5016,12 +5006,12 @@ function ns:CreatePicker()
     picker.outline = CreateFrame("Frame", nil, picker, "BackdropTemplate"); Backdrop(picker.outline, { C.teal[1], C.teal[2], C.teal[3], 0.09 }, C.teal); picker.outline:SetFrameLevel(905); picker.outline:EnableMouse(false)
     picker.dock = CreateFrame("Frame", nil, picker, "BackdropTemplate"); picker.dock:SetSize(400, 168); picker.dock:SetPoint("TOP", 0, -34); picker.dock:SetFrameLevel(910); picker.dock:EnableMouse(true); picker.dock:EnableMouseWheel(true); picker.dock:SetClampedToScreen(true); Backdrop(picker.dock, C.panel, C.accent)
     ApplyEUIObject("panel", picker.dock, { inset = true })
-    picker.title = Text(picker.dock, "GameFontNormalLarge", "Point at the UI you want to manage", C.accent); picker.title:SetPoint("TOPLEFT", 12, -10); picker.title:SetWidth(376); picker.title:SetWordWrap(false)
+    picker.title = Text(picker.dock, "GameFontNormalLarge", "Point at a frame", C.accent); picker.title:SetPoint("TOPLEFT", 12, -10); picker.title:SetWidth(376); picker.title:SetWordWrap(false)
     picker.technicalName = Text(picker.dock, "GameFontHighlightSmall", "", C.muted); picker.technicalName:SetPoint("TOPLEFT", picker.title, "BOTTOMLEFT", 0, -2); picker.technicalName:SetWidth(376); picker.technicalName:SetWordWrap(false)
     picker.capability = Text(picker.dock, "GameFontHighlightSmall", "", C.teal); picker.capability:SetPoint("TOPLEFT", picker.technicalName, "BOTTOMLEFT", 0, -2); picker.capability:SetWidth(376); picker.capability:SetWordWrap(false)
-    picker.wheel = Text(picker.dock, "GameFontNormal", "USE THE MOUSE WHEEL TO CHANGE FRAME", C.accent); picker.wheel:SetPoint("TOPLEFT", picker.capability, "BOTTOMLEFT", 0, -7); picker.wheel:SetWidth(376); picker.wheel:SetJustifyH("CENTER")
+    picker.wheel = Text(picker.dock, "GameFontNormal", "WHEEL: NEXT FRAME", C.accent); picker.wheel:SetPoint("TOPLEFT", picker.capability, "BOTTOMLEFT", 0, -7); picker.wheel:SetWidth(376); picker.wheel:SetJustifyH("CENTER")
     picker.stack = Text(picker.dock, "GameFontHighlightSmall", "", C.muted); picker.stack:SetPoint("TOPLEFT", picker.wheel, "BOTTOMLEFT", 0, -5); picker.stack:SetWidth(376); picker.stack:SetJustifyH("CENTER"); picker.stack:SetWordWrap(false)
-    picker.help = Text(picker.dock, "GameFontHighlightSmall", "Click the teal outline | Esc: cancel", C.muted); picker.help:SetPoint("TOPLEFT", picker.stack, "BOTTOMLEFT", 0, -4); picker.help:SetWidth(376); picker.help:SetJustifyH("CENTER"); picker.help:SetWordWrap(false)
+    picker.help = Text(picker.dock, "GameFontHighlightSmall", "Esc: cancel", C.muted); picker.help:SetPoint("TOPLEFT", picker.stack, "BOTTOMLEFT", 0, -4); picker.help:SetWidth(376); picker.help:SetJustifyH("CENTER"); picker.help:SetWordWrap(false)
     picker.previous = Button(picker.dock, "< Previous", 84, function() ns:CyclePicker(1) end); picker.previous:SetPoint("BOTTOMLEFT", 12, 10)
     picker.technicalToggle = Button(picker.dock, "Show technical", 112, function() ns:TogglePickerTechnicalFrames() end); picker.technicalToggle:SetPoint("BOTTOM", 0, 10)
     picker.next = Button(picker.dock, "Next >", 84, function() ns:CyclePicker(-1) end); picker.next:SetPoint("BOTTOMRIGHT", -12, 10)
@@ -5030,7 +5020,7 @@ function ns:CreatePicker()
     picker.technicalToggle:SetScript("OnMouseWheel", function(_, delta) ns:CyclePicker(delta) end)
     picker.next:SetScript("OnMouseWheel", function(_, delta) ns:CyclePicker(delta) end)
     picker.technicalToggle._tooltipTitle = "Technical frames"
-    picker.technicalToggle._tooltipBody = "Include full-screen effect and system layers. Most players can leave these hidden."
+    picker.technicalToggle._tooltipBody = "Full-screen and system layers"
     picker.use = Button(picker.dock, "Use this frame", 112, function() ns:UsePickedTarget() end, true); picker.use:SetPoint("BOTTOMRIGHT", -12, 10); picker.use:Hide()
     picker.again = Button(picker.dock, "Choose again", 96, function() ns:ChooseAgain() end); picker.again:SetPoint("RIGHT", picker.use, "LEFT", -7, 0); picker.again:Hide()
     picker.scrim = {}
@@ -5079,7 +5069,7 @@ end
 
 function ns:StartPicker(intent)
     if InCombatLockdown() then
-        if self.Options then self.Options.active:SetText("Frame selection is unavailable during combat") self.Options.active:SetTextColor(unpack(C.amber)) end
+        if self.Options then self.Options.active:SetText("Not in combat") self.Options.active:SetTextColor(unpack(C.amber)) end
         return
     end
     -- /fg pick can be the first editor action after a reload.
@@ -5097,12 +5087,12 @@ function ns:StartPicker(intent)
     self.Picker.lastCursorX, self.Picker.lastCursorY, self.Picker.forceVisual = nil, nil, true
     self.Picker.dockAnchorX, self.Picker.dockAnchorY = nil, nil
     self.Picker.use:Hide(); self.Picker.again:Hide(); self.Picker.previous:Hide(); self.Picker.next:Hide(); self.Picker.technicalToggle:Hide(); self.Picker.dock:SetHeight(168)
-    self.Picker.title:SetText("Finding visible frames...")
+    self.Picker.title:SetText("Finding frames…")
     self.Picker.technicalName:SetText("")
-    self.Picker.capability:SetText("This may take a moment")
-    self.Picker.wheel:SetText("USE THE MOUSE WHEEL TO CHANGE FRAME")
+    self.Picker.capability:SetText("")
+    self.Picker.wheel:SetText("WHEEL: NEXT FRAME")
     self.Picker.stack:SetText("")
-    self.Picker.help:SetText("Point at the UI you want to manage | Esc: cancel")
+    self.Picker.help:SetText("Esc: cancel")
     self.Picker.technicalToggle:SetText("Show technical")
     self.Picker.help:SetTextColor(unpack(C.muted))
     if self.Options then self.Options:Hide() end
@@ -5120,8 +5110,8 @@ end
 
 local function PickerCapability(candidate)
     if candidate and candidate.frame then
-        if candidate.name then return candidate.isRoot and "Saved window" or "Saved frame", "This selection remains available after reload.", "teal" end
-        return candidate.isRoot and "Temporary window" or "Temporary frame", "This unnamed selection lasts until reload.", "amber"
+        if candidate.name then return candidate.isRoot and "Saved window" or "Saved frame", "Kept after reload", "teal" end
+        return candidate.isRoot and "Temporary window" or "Temporary frame", "Lost on reload", "amber"
     end
     return ns:GetTargetCapability(candidate)
 end
@@ -5138,19 +5128,19 @@ function ns:UpdatePicker()
             local done = self:ContinuePickerAtlas(picker.atlas, 64)
             picker.outline:Hide(); picker.capability:Show()
             DimEntirePickerScreen(picker)
-            picker.title:SetText("Finding visible frames...")
+            picker.title:SetText("Finding frames…")
             picker.technicalName:SetText("")
             picker.stack:SetText("")
             picker.capability:SetText(string.format("%d checked | %d found", picker.atlas.inspected or 0, picker.atlas.eligible or 0))
             picker.capability:SetTextColor(unpack(C.teal))
-            picker.help:SetText("This scan runs once per selection | Esc: cancel")
+            picker.help:SetText("Esc: cancel")
             if not done then return end
             picker.forceVisual = true
             QueuePickerOverview(picker)
             ContinuePickerOverview(picker)
             if #(picker.atlas.entries or {}) == 0 then
-                picker.title:SetText("No selectable frames found")
-                picker.capability:SetText(string.format("%d frames checked | try /reload", picker.atlas.inspected or 0))
+                picker.title:SetText("No frames found")
+                picker.capability:SetText(string.format("%d checked | try /reload", picker.atlas.inspected or 0))
                 picker.capability:SetTextColor(unpack(C.amber))
             else
                 picker.previous:Show(); picker.next:Show(); picker.technicalToggle:Show()
@@ -5204,10 +5194,10 @@ function ns:UpdatePicker()
         picker.capability:Show()
         local mapped = picker.atlas and #(picker.atlas.entries or {}) or 0
         if mapped == 0 then
-            picker.title:SetText("No selectable frames found")
+            picker.title:SetText("No frames found")
             picker.technicalName:SetText("")
             picker.stack:SetText("")
-            picker.capability:SetText(string.format("%d frames checked | try /reload", picker.atlas and picker.atlas.inspected or 0))
+            picker.capability:SetText(string.format("%d checked | try /reload", picker.atlas and picker.atlas.inspected or 0))
             picker.capability:SetTextColor(unpack(C.amber))
             picker.help:SetText("Esc: cancel")
         else
@@ -5216,7 +5206,7 @@ function ns:UpdatePicker()
             picker.capability:SetText(string.format("%d selectable areas found", mapped))
             picker.capability:SetTextColor(unpack(C.teal))
             picker.stack:SetText("")
-            picker.help:SetText("Point at visible UI | Esc: cancel")
+            picker.help:SetText("Esc: cancel")
         end
         return
     end
@@ -5244,18 +5234,18 @@ function ns:UpdatePicker()
         local capability, _, tone = PickerCapability(candidate)
         picker.capability:Show(); picker.capability:SetText(capability); picker.capability:SetTextColor(unpack(C[tone] or C.accent))
         picker.wheel:SetText("FRAME SELECTED")
-        picker.stack:SetText("Check the teal outline before confirming")
-        picker.help:SetText(picker.intent == "cinematic_keep" and "Confirm to keep this frame visible in Cinematic" or "Confirm or choose again")
+        picker.stack:SetText("Check the outline")
+        picker.help:SetText(picker.intent == "cinematic_keep" and "Keep it in Cinematic?" or "")
     else
         local scope = candidate.isRoot == false and "inner frame" or "whole window"
         picker.title:SetText(ShortText(PickerDisplayLabel(candidate), 38))
         picker.technicalName:SetText(ShortText(PickerTechnicalName(candidate), 52))
         local capability, _, tone = PickerCapability(candidate)
         if candidate.technical then
-            capability = (candidate.technicalReason or "System layer") .. " | usually not the frame you want"
+            capability = (candidate.technicalReason or "System layer") .. " | likely wrong"
             tone = "accent"
         elseif candidate.broad then
-            capability = "Broad container | a smaller frame may be a better choice"
+            capability = "Large container"
             tone = "accent"
         else
             capability = capability .. " | " .. scope
@@ -5263,8 +5253,8 @@ function ns:UpdatePicker()
         picker.capability:Show(); picker.capability:SetText(capability); picker.capability:SetTextColor(unpack(C[tone] or C.accent))
         picker.stack:SetText(PickerStackText(picker))
         picker.help:SetText((picker.hiddenTechnical or 0) > 0
-            and string.format("Click the teal outline | Esc: cancel | %d system layers hidden", picker.hiddenTechnical)
-            or "Click the teal outline | Esc: cancel")
+            and string.format("Esc: cancel | %d hidden", picker.hiddenTechnical)
+            or "Esc: cancel")
         picker.technicalToggle:SetText(picker.showTechnical and "Hide technical" or "Show technical")
     end
 end
@@ -5311,7 +5301,7 @@ function ns:ChooseAgain()
     picker.phase, picker.pendingTargetID, picker.pendingCandidate = "browse", nil, nil
     picker.forceVisual = true
     picker.dock:SetHeight(168); picker.use:Hide(); picker.again:Hide(); picker.previous:Show(); picker.next:Show(); picker.technicalToggle:Show()
-    picker.wheel:SetText("USE THE MOUSE WHEEL TO CHANGE FRAME")
+    picker.wheel:SetText("WHEEL: NEXT FRAME")
     picker.help:SetTextColor(unpack(C.muted))
     self:UpdatePicker()
 end
@@ -5324,7 +5314,7 @@ function ns:UsePickedTarget()
         if candidate and candidate.frame then ok, reason = self:KeepCinematicFrame(candidate.frame) end
         if not ok then
             self:ChooseAgain()
-            picker.help:SetText(reason or "That frame is no longer available.")
+            picker.help:SetText(reason or "Frame gone")
             picker.help:SetTextColor(unpack(C.amber))
             return
         end
@@ -5338,7 +5328,7 @@ function ns:UsePickedTarget()
         local id, reason = self:RegisterDiscoveredFrame(candidate.frame, candidate.label, true)
         if not id then
             self:ChooseAgain()
-            picker.help:SetText(reason or "That frame is no longer available.")
+            picker.help:SetText(reason or "Frame gone")
             picker.help:SetTextColor(unpack(C.amber))
             return
         end

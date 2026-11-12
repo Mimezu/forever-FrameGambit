@@ -311,7 +311,7 @@ function ns:RefreshCinematicCameraOffset()
 end
 
 function ns:ToggleCinematicCameraOffset()
-    if not self:IsCinematicActive() then return false, "Turn on Cinematic Mode first." end
+    if not self:IsCinematicActive() then return false, "Cinematic is off" end
     if not state.active then self:AcquireCinematicCamera() end
     local enabled = not state.offsetEnabled
     ApplyLiveOffset(enabled, true)

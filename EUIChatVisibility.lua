@@ -168,18 +168,18 @@ function proxy:GetFrameGambitTimingOwner()
 end
 
 function proxy:GetFrameGambitTimingNote()
-    return "Ellesmere owns fade speed; Frame Gambit controls rule priority and wait."
+    return "Fade speed set in Ellesmere"
 end
 
 function proxy:SetAlpha(value)
     if type(value) ~= "number" or Secret(value) or value ~= value or value < 0 or value > 1 then return end
     local _, chat = Module()
-    if not chat then error("Frame Gambit could not resolve Ellesmere Chat.", 0) end
+    if not chat then error("Ellesmere Chat not found", 0) end
     state.applied = value
     state.guard = true
     local ok = pcall(chat.SetChatAlpha, value)
     state.guard = false
-    if not ok then error("Frame Gambit could not fade Ellesmere Chat.", 0) end
+    if not ok then error("Ellesmere Chat fade failed", 0) end
 end
 
 local function Acquire(frame)
@@ -219,7 +219,7 @@ local function Install()
     target.timingNote = proxy:GetFrameGambitTimingNote()
     target.capability = "Complete Ellesmere chat"
     target.capabilityTone = "teal"
-    target.capabilityNote = "Fades Ellesmere's messages, panel, tabs, sidebar and chrome together. Ellesmere keeps styling, chat data, layout, interaction behavior, and physical fade duration."
+    target.capabilityNote = "All of Ellesmere Chat together"
     return true
 end
 

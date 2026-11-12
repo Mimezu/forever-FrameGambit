@@ -159,7 +159,7 @@ playerAuras = { { spellId = 1229739, name = "Welcoming Campfire", duration = 60,
 assert(sitting() == true, "Welcoming Campfire is built in")
 playerAuras = {}
 ns:HandleCampfireCommand("")
-assert(printed[#printed]:find("no auras"), "Empty aura list explains how to learn")
+assert(printed[#printed]:find("No auras"), "Empty aura list explains how to learn")
 playerAuras = {
     { spellId = 1, name = "Power Word: Fortitude", duration = 1800, expirationTime = now + 1700 },
     { spellId = 1229451, name = "Boosted Rest", duration = 3600, expirationTime = now + 3000, harmful = true },

@@ -21,21 +21,21 @@ ns.Targets = {
     { id = "stance_bar", label = "Stance Bar", source = "Ellesmere / Blizzard", names = { "EABBar_StanceBar", "StanceBar", "StanceBarFrame" }, protected = true },
     { id = "extra_abilities", label = "Extra Abilities", source = "Ellesmere / Blizzard", names = { "EllesmereEAB_ExtraActionButton", "ExtraAbilityContainer", "ExtraActionBarFrame", "ZoneAbilityFrame" }, protected = true },
     { id = "eui_castbar", label = "Cast Bar", source = "Ellesmere / Blizzard", names = { "ERB_CastBarFrame", "PlayerCastingBarFrame" }, protected = true,
-        capability = "Opacity only", capabilityTone = "teal", capabilityNote = "Frame Gambit changes only opacity. Ellesmere or Blizzard keeps the bar's layout and behavior." },
+        capability = "Opacity only", capabilityTone = "teal", capabilityNote = "Layout stays with its owner" },
     { id = "eui_resourcebars", label = "Resource Bars", source = "Ellesmere", names = { "EllesmereUIResourceBarsFrame" }, protected = false,
-        capability = "Whole group", capabilityTone = "teal", capabilityNote = "All Resource Bars fade together. Ellesmere keeps their layout and behavior." },
+        capability = "Whole group", capabilityTone = "teal", capabilityNote = "All bars together" },
     { id = "cdm_cooldowns", label = "CDM - Cooldowns", source = "Blizzard CDM / Ellesmere", names = { "EssentialCooldownViewer" }, protected = true,
-        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "The complete Cooldowns viewer fades together. Its layout and alerts stay unchanged." },
+        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "Whole viewer" },
     { id = "cdm_utility", label = "CDM - Utility", source = "Blizzard CDM / Ellesmere", names = { "UtilityCooldownViewer" }, protected = true,
-        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "The complete Utility viewer fades together, including Ellesmere bars in that category." },
+        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "Whole viewer" },
     { id = "cdm_buffs", label = "CDM - Buffs / auras", source = "Blizzard CDM / Ellesmere", names = { "BuffIconCooldownViewer" }, protected = true,
-        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "The complete Buff Icons viewer fades together. Icon styling and alerts stay unchanged." },
+        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "Whole viewer" },
     { id = "cdm_buff_bars", label = "CDM - Buff bars", source = "Blizzard CDM / Ellesmere", names = { "BuffBarCooldownViewer" }, protected = true,
-        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "The complete Buff Bars viewer fades together. Its layout and alerts stay unchanged." },
+        capability = "Whole viewer", capabilityTone = "teal", capabilityNote = "Whole viewer" },
     { id = "player_buffs", label = "Player Buffs", source = "Blizzard", names = { "BuffFrame" }, protected = true,
-        capability = "Blizzard buffs", capabilityTone = "teal", capabilityNote = "Controls Blizzard's player buff icons, not Cooldown Manager's tracked buffs." },
+        capability = "Blizzard buffs", capabilityTone = "teal", capabilityNote = "Not Cooldown Manager buffs" },
     { id = "player_debuffs", label = "Player Debuffs", source = "Blizzard", names = { "DebuffFrame" }, protected = true,
-        capability = "Blizzard debuffs", capabilityTone = "teal", capabilityNote = "Controls Blizzard's player debuff icons, not Cooldown Manager's tracked buffs." },
+        capability = "Blizzard debuffs", capabilityTone = "teal", capabilityNote = "Not Cooldown Manager buffs" },
     { id = "eui_player", label = "Player Frame", source = "Ellesmere / Blizzard", names = { "EllesmereUIUnitFrames_Player", "PlayerFrame" }, protected = true },
     { id = "eui_target", label = "Target Frame", source = "Ellesmere / Blizzard", names = { "EllesmereUIUnitFrames_Target", "TargetFrame" }, protected = true },
     { id = "eui_focus", label = "Focus Frame", source = "Ellesmere / Blizzard", names = { "EllesmereUIUnitFrames_Focus", "FocusFrame" }, protected = true },
@@ -50,9 +50,9 @@ ns.Targets = {
     { id = "party_frames", label = "Party Frames", source = "Blizzard", names = { "PartyFrame", "CompactPartyFrame" }, protected = true },
     { id = "eui_raid", label = "Raid Frames", source = "Ellesmere / Blizzard", names = { "EllesmereUIRaidFrameContainer", "CompactRaidFrameContainer" }, protected = true },
     { id = "arena_frames", label = "Arena Frames", source = "Blizzard", names = {}, protected = true,
-        capability = "Unavailable", capabilityTone = "muted", capabilityNote = "Arena frames are not available in this beta." },
+        capability = "Unavailable", capabilityTone = "muted", capabilityNote = "Not in this client" },
     { id = "chat", label = "Chat", source = "Ellesmere Chat / Blizzard", names = { "ChatFrame1" }, protected = false,
-        capability = "Whole chat", capabilityTone = "teal", capabilityNote = "Controls all chat windows, future whisper tabs, input and attached controls together." },
+        capability = "Whole chat", capabilityTone = "teal", capabilityNote = "All chat windows together" },
     { id = "bags_bar", label = "Bag Bar", source = "Ellesmere / Blizzard", names = { "EllesmereEAB_BagBar", "BagsBar" }, protected = true },
     { id = "micro_menu", label = "Micro Menu", source = "Ellesmere / Blizzard", names = { "EllesmereEAB_MicroBar", "EllesmereUIMicroMenu", "MicroMenuContainer" }, protected = true },
     { id = "minimap", label = "Minimap", source = "Blizzard", names = { "Minimap" }, protected = false },
@@ -66,12 +66,12 @@ ns.Targets = {
     { id = "ui_errors", label = "Error Messages", source = "Blizzard", names = { "UIErrorsFrame" }, protected = false },
     { id = "talking_head", label = "Talking Head", source = "Blizzard", names = { "TalkingHeadFrame" }, protected = false },
     { id = "loot_rolls", label = "Loot Rolls", source = "Blizzard", names = { "GroupLootContainer" }, protected = false,
-        capability = "All roll windows", capabilityTone = "teal", capabilityNote = "The Need / Greed / Pass windows fade, resize and move together. The game shows them only while a roll is open." },
+        capability = "All roll windows", capabilityTone = "teal", capabilityNote = "Shown only during a roll" },
     { id = "durability", label = "Durability", source = "Blizzard", names = { "DurabilityFrame" }, protected = false,
-        capability = "Armor figure", capabilityTone = "teal", capabilityNote = "The damaged-gear armor figure. The game shows it only while some equipped item is damaged or broken." },
+        capability = "Armor figure", capabilityTone = "teal", capabilityNote = "Shown only with damaged gear" },
     { id = "timers", label = "Timers", source = "Blizzard", names = { "TimerTracker" }, protected = false },
     { id = "blizzard_damage_meter", label = "Blizzard Damage Meter", source = "Blizzard", names = { "DamageMeterSessionWindow1" }, protected = false,
-        capability = "Whole window", capabilityTone = "teal", capabilityNote = "The complete Blizzard Damage Meter fades together. Its data and layout stay unchanged." },
+        capability = "Whole window", capabilityTone = "teal", capabilityNote = "Whole window" },
 }
 
 ns.TargetByID = {}
@@ -166,18 +166,18 @@ function ns:RegisterTarget(definition)
 end
 
 function ns:GetTargetCapability(target)
-    if not target then return "Unavailable", "This frame is not currently available.", "amber" end
+    if not target then return "Unavailable", "Not available", "amber" end
     if type(target.capability) == "string" and target.capability ~= "" then
         local tone = target.capabilityTone
         if tone ~= "teal" and tone ~= "accent" and tone ~= "amber" and tone ~= "muted" then tone = target.protected and "teal" or "accent" end
-        local fallback = "This frame comes from " .. (target.source or "another UI") .. "."
+        local fallback = (target.source or "Another UI")
         local note = type(target.capabilityNote) == "string" and target.capabilityNote ~= "" and target.capabilityNote or fallback
         return target.capability, note, tone
     end
     if target.protected then
-        return "Live fade in combat", "This UI can fade while fighting. It is never moved, hidden, or reconfigured in combat.", "teal"
+        return "Live fade in combat", "Never moved in combat", "teal"
     end
-    return "Opacity only", "Frame Gambit changes this frame's opacity. Size and position change only if you turn them on for a rule.", "accent"
+    return "Opacity only", "Size and position optional", "accent"
 end
 
 function ns:ResolveTarget(id)
@@ -213,15 +213,15 @@ end
 -- an encounter). The editor can explain that instead of silently omitting it.
 function ns:GetTargetAvailability(targetOrID)
     local target = type(targetOrID) == "table" and targetOrID or self.TargetByID[targetOrID]
-    if not target then return false, nil, "Unavailable", "This frame is no longer available.", "amber" end
+    if not target then return false, nil, "Unavailable", "Gone", "amber" end
     local frame = self:ResolveTarget(target.id)
-    if frame then return true, frame, "Available", "This frame is currently available for selection.", "teal" end
+    if frame then return true, frame, "Available", "Ready", "teal" end
     local source = target.source or "this UI"
     local note
     if target.external then
-        note = source .. " is not loaded yet. Enable it, open that part of the UI, then try again."
+        note = source .. " not loaded"
     else
-        note = "This " .. source .. " frame is not visible yet. Open that part of the UI, then try again."
+        note = "Not shown yet"
     end
     return false, nil, "Unavailable", note, "amber"
 end
@@ -927,10 +927,10 @@ function ns:RegisterDiscoveredFrame(frame, label, exactFrame)
         if providerID then return providerID end
     end
     local root = self:GetFramePickerRoot(frame)
-    if not root then return nil, "That frame cannot be managed safely." end
+    if not root then return nil, "Frame not supported" end
     local managed = exactFrame and frame or root
     if not IsUsableTargetFrame(managed) or IsForbiddenFrame(managed) or self:IsFrameGambitFrame(managed) then
-        return nil, "That frame cannot be managed safely."
+        return nil, "Frame not supported"
     end
     for _, target in ipairs(self.Targets) do
         local existing = self:ResolveTarget(target.id)
@@ -951,7 +951,7 @@ function ns:RegisterDiscoveredFrame(frame, label, exactFrame)
                 names = { name },
                 protected = true,
                 capability = exactFrame and "Saved frame" or "Saved window",
-                capabilityNote = "This selection remains available after reload. Frame Gambit changes only its opacity.",
+                capabilityNote = "Kept after reload",
                 capabilityTone = "teal",
             })
             if not registered then return nil, reason end
@@ -973,7 +973,7 @@ function ns:RegisterDiscoveredFrame(frame, label, exactFrame)
         resolve = function() return managed end,
         protected = true,
         capability = exactFrame and "Temporary frame" or "Temporary window",
-        capabilityNote = "This unnamed frame can fade until you reload. Named addon frames are saved automatically.",
+        capabilityNote = "Lost on reload",
         capabilityTone = "amber",
     })
     return registered and id or nil, reason
@@ -992,7 +992,7 @@ function ns:RegisterStoredCustomFrames()
                 names = { entry.name },
                 protected = true,
                 capability = entry.exact == true and "Saved frame" or "Saved window",
-                capabilityNote = "This selection remains available after reload. Frame Gambit changes only its opacity.",
+                capabilityNote = "Kept after reload",
                 capabilityTone = "teal",
             })
         end
@@ -1047,7 +1047,7 @@ end
 
 function ns:ForgetCustomTarget(id)
     if not self:CanForgetCustomTarget(id) then
-        return false, "Built-in frames and frames added by other addons cannot be removed here."
+        return false, "Built-in frame"
     end
     -- Restore the live frame before removing its resolver and catalog entry.
     if self.Profile and self:Profile().targets[id] then self:RemoveTarget(id) end
@@ -1063,7 +1063,7 @@ function ns:ForgetCustomTarget(id)
     if self.Options and self.Options.selected == id then self.Options.selected = nil end
     if self.ReconcileCinematicOwnership then self:ReconcileCinematicOwnership() end
     self:RefreshOptions()
-    return true, "Frame removed from the catalog and every profile."
+    return true, "Removed"
 end
 
 function ns:DiscoverVisibleFrameRoots()

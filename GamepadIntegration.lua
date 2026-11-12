@@ -163,15 +163,15 @@ function ns:GetGamepadConditionActivity(condition, targetID)
 end
 
 local cards = {
-    { "gamepad_mode", "Gamepad mode", "Yes = Blizzard controller mode is enabled. No = disabled." },
-    { "gamepad_lt_held", "LT held", "Yes = the left trigger is physically held. No = released during controller gameplay." },
-    { "gamepad_rt_held", "RT held", "Yes = the right trigger is physically held. No = released during controller gameplay." },
-    { "gamepad_both_held", "Both held", "Yes = both triggers are physically held. No = at least one is released during controller gameplay." },
-    { "gamepad_left_shoulder_held", "Left shoulder held", "Yes = the left shoulder button is physically held. No = released during controller gameplay." },
-    { "gamepad_right_shoulder_held", "Right shoulder held", "Yes = the right shoulder button is physically held. No = released during controller gameplay." },
-    { "gamepad_both_shoulders_held", "Both shoulders held", "Yes = both shoulder buttons are physically held. No = at least one is released during controller gameplay." },
-    { "gamepad_bar_active", "Bar active", "For a gamepad bar: Yes = this bar is the active layer. No = another layer is active." },
-    { "gamepad_frame_highlighted", "Frame highlighted", "Yes = this frame or a child control has gamepad UI focus, including party/raid member navigation. Highlighting a member counts for its containing group frame. No = it is not highlighted, including outside gamepad mode.", native = true },
+    { "gamepad_mode", "Gamepad mode", nil },
+    { "gamepad_lt_held", "LT held", nil },
+    { "gamepad_rt_held", "RT held", nil },
+    { "gamepad_both_held", "Both held", nil },
+    { "gamepad_left_shoulder_held", "Left shoulder held", nil },
+    { "gamepad_right_shoulder_held", "Right shoulder held", nil },
+    { "gamepad_both_shoulders_held", "Both shoulders held", nil },
+    { "gamepad_bar_active", "Bar active", nil },
+    { "gamepad_frame_highlighted", "Frame highlighted", nil, native = true },
 }
 -- Keep CHAT in the final category slot after Gamepad.
 local categoryIndex = #ns.CONDITION_CATEGORY_ORDER + 1
@@ -180,8 +180,7 @@ for index, category in ipairs(ns.CONDITION_CATEGORY_ORDER) do
 end
 table.insert(ns.CONDITION_CATEGORY_ORDER, categoryIndex, { id = "gamepad", label = "Gamepad" })
 for index, card in ipairs(cards) do
-    local help = card[3] .. (card.native and " Uses Blizzard's native gamepad navigation." or " Requires Gamepad Companion.")
-        .. " Unavailable input matches neither answer."
+    local help = not card.native and "Needs Gamepad Companion" or nil
     ns.CONDITION_INFO[card[1]] = {
         label = card[2], category = "gamepad", kind = "state", pickerOrder = index,
         gamepad = true, booleanField = "gamepadExpected",
@@ -203,7 +202,7 @@ for _, entry in ipairs({ { "base", "Base" }, { "lt", "LT" }, { "rt", "RT" }, { "
     local target = {
         id = "gamepad_" .. layer, label = "Gamepad - " .. entry[2], source = "Blizzard / Gamepad Companion",
         protected = true, capability = "Opacity only", capabilityTone = "teal",
-        capabilityNote = "Use Bar active: Yes to reveal this bar. Opacity rules remain active during chat and menus. Blizzard keeps its actions; Gamepad Companion keeps its layout.",
+        capabilityNote = "Use Bar active",
         resolve = function()
             local api, state = Provider(), State()
             -- Menus/chat suspend gameplay input, not ownership of the HUD's

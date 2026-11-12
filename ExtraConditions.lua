@@ -20,28 +20,28 @@ end
 
 ns.CONDITION_INFO.party_combat = {
     label = "Party member in combat", category = "party", kind = "state", pickerOrder = 3,
-    help = "While at least one other party member is in combat. Excludes you, pets and raid members.",
+    help = nil,
 }
 ns.CONDITION_INFO.major_city = {
     label = "In a major city", category = "social", kind = "state",
-    help = "Inside a recognized major city map, including its interior maps. An inn outside a city does not count.",
+    help = nil,
 }
 ns.CONDITION_INFO.elite_combat = {
-    label = "In combat with an elite", category = "character", kind = "state", restricted = true,
-    help = "While you have threat on a visible elite, rare elite or boss. Checks your target, focus, party targets, bosses and nameplates. Unavailable combat information does not trigger this condition.",
+    label = "Fighting an elite", category = "character", kind = "state", restricted = true,
+    help = nil,
 }
 ns.CONDITION_INFO.chat_party_loot = {
-    label = "Party member loots an item", category = "chat", kind = "moment", duration = 10,
-    help = "When another current party member receives an item. Excludes your own loot and raid members. Each item restarts the duration.",
+    label = "Party member loots", category = "chat", kind = "moment", duration = 10,
+    help = nil,
 }
 ns.CONDITION_INFO.chat_loot_winner = {
-    label = "Loot roll winner announced", category = "chat", kind = "moment", duration = 10,
-    help = "When loot chat announces who won an item roll, including you. Reveals your selected frame so you can read the result. Roll choices and all-passed messages do not trigger it.",
+    label = "Loot roll won", category = "chat", kind = "moment", duration = 10,
+    help = nil,
 }
 
 ns.CONDITION_INFO.campfire_sitting = {
-    label = "Sitting at a campfire", category = "character", kind = "state",
-    help = "While you sit at a campfire and its one-minute timer runs, until the camp buffs land or you stand up. Follows the Welcoming Campfire timer aura. If another campfire is not recognized, type /fg campfire while its timer runs.",
+    label = "At a campfire", category = "character", kind = "state",
+    help = "Not detected? /fg campfire",
 }
 
 -- UI map IDs, not localized zone names. Child maps inherit their city's ID.
@@ -163,34 +163,34 @@ function ns:HandleCampfireCommand(argument)
     argument = argument or ""
     if argument == "clear" then
         FrameGambitDB.campfireAuras = nil
-        Say("Forgot the campfire timer aura.")
+        Say("Campfire timer forgotten")
         return self:Wake()
     elseif argument == "list" then
         local learned = CampfireAuras()
-        if not learned or next(learned) == nil then return Say("No campfire timer learned yet.") end
+        if not learned or next(learned) == nil then return Say("No campfire timer") end
         for spellID, name in pairs(learned) do Say(("Campfire timer: %s (%d)"):format(tostring(name), spellID)) end
         return
     end
     local auras = ReadPlayerAuras()
-    if not auras then return Say("Auras cannot be read on this client.") end
+    if not auras then return Say("Auras unreadable") end
     local pick = tonumber(argument)
     if pick then
         if auras[pick] then return Learn(auras[pick]) end
-        return Say("No aura with that number. Run /fg campfire again for the current list.")
+        return Say("No aura with that number")
     end
     local short = {}
     for _, aura in ipairs(auras) do if aura.short then short[#short + 1] = aura end end
     if #short == 1 then return Learn(short[1]) end
     if #auras == 0 then
-        return Say("You have no auras. Sit at a lit campfire (/sit) and run /fg campfire while its timer runs.")
+        return Say("No auras. Sit at a campfire first")
     end
-    Say(#short == 0 and "No one-minute timer found. Pick the campfire aura from your auras:"
-        or "Several short auras found. Pick the campfire timer:")
+    Say(#short == 0 and "Pick the campfire aura:"
+        or "Pick the campfire aura:")
     for index, aura in ipairs(auras) do
         Say(("  %d. %s (%d)%s"):format(index, aura.name, aura.spellID,
             aura.remaining and (" - " .. aura.remaining .. "s left") or ""))
     end
-    Say("Type /fg campfire <number>.")
+    Say("/fg campfire <number>")
 end
 
 function ns:BuildExtraConditionContext(needed, context)

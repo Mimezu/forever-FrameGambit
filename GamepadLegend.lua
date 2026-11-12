@@ -93,7 +93,7 @@ ns:RegisterTarget({
     id = "gamepad_input_legend", label = "Gamepad - Control hints",
     source = "Blizzard", protected = true, skipManagedAlphaHook = true,
     capability = "Controller hints", capabilityTone = "teal",
-    capabilityNote = "Fades Blizzard's controller hints while preserving its current controls and menu state.",
+    capabilityNote = "Opacity only",
     resolve = function()
         local root = _G.GamepadPersistentInputLegend
         if not root or Secret(root) then return nil end
