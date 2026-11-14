@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.1 - 2026-11-14
+
+- Fix: keyboard dead in game (Options page keys caught every key)
+
 ## 1.3.0 - 2026-11-14
 
 - Settings menu in the window: every key, minimap icon

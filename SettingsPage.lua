@@ -22,7 +22,8 @@ ns.RefreshSettingsPage = Refresh
 local function StopListening()
     local keycap = listening
     listening = nil
-    if keycap then keycap:EnableKeyboard(false); keycap:UnlockHighlight() end
+    -- Setting OnKeyDown turns the keyboard on, so the handler exists only while listening.
+    if keycap then keycap:SetScript("OnKeyDown", nil); keycap:EnableKeyboard(false); keycap:UnlockHighlight() end
     Refresh()
 end
 
@@ -47,18 +48,7 @@ local function KeyRow(entry, anchor)
     local keycap = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     keycap:SetSize(170, 24)
     keycap:SetPoint("LEFT", label, "RIGHT", 8, 0)
-    keycap:SetScript("OnClick", function(self)
-        if InCombatLockdown() then Say("Not in combat", true); return end
-        if listening == self then StopListening(); return end
-        StopListening()
-        listening = self
-        self:SetText("Press a key")
-        self:LockHighlight()
-        self:EnableKeyboard(true)
-        if self.SetPropagateKeyboardInput then self:SetPropagateKeyboardInput(false) end
-        Say("Esc: cancel. Del: clear")
-    end)
-    keycap:SetScript("OnKeyDown", function(self, key)
+    local function OnKeyDown(self, key)
         if listening ~= self then return end
         if key == "ESCAPE" then Say(""); StopListening(); return end
         if key == "BACKSPACE" or key == "DELETE" then Bind(entry, nil); StopListening(); return end
@@ -66,13 +56,27 @@ local function KeyRow(entry, anchor)
         if not chord then return end
         Bind(entry, chord)
         StopListening()
+    end
+    keycap:SetScript("OnClick", function(self)
+        if InCombatLockdown() then Say("Not in combat", true); return end
+        if listening == self then StopListening(); return end
+        StopListening()
+        listening = self
+        self:SetText("Press a key")
+        self:LockHighlight()
+        self:SetScript("OnKeyDown", OnKeyDown)
+        self:EnableKeyboard(true)
+        if self.SetPropagateKeyboardInput then self:SetPropagateKeyboardInput(false) end
+        Say("Esc: cancel. Del: clear")
     end)
     keycap:SetScript("OnHide", function(self) if listening == self then StopListening() end end)
     return { entry = entry, label = label, keycap = keycap }
 end
 
 local function Build()
+    -- Hidden until the Settings window shows it; a parentless frame is otherwise visible.
     page = CreateFrame("Frame")
+    page:Hide()
     page.name = ns.NAME
     local heading = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     heading:SetPoint("TOPLEFT", 16, -16)

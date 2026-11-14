@@ -164,6 +164,9 @@ pageLoader.scripts.OnEvent(pageLoader, "PLAYER_LOGIN")
 assert(registered and registered.addon and registered.name == "Frame Gambit", "page registered under the addon title")
 local page = registered.frame
 assert(#page.keys == #ns.KEY_ACTIONS, "one keycap per key")
+-- Regression: OnKeyDown turns a frame's keyboard on, so an idle, visible keycap ate every key.
+assert(not page:IsShown(), "page hidden until Settings shows it")
+for _, r in ipairs(page.keys) do assert(r.keycap.scripts.OnKeyDown == nil, "idle keycap has no OnKeyDown") end
 page.scripts.OnShow(page)
 assert(page.minimap.checked == true)
 -- Minimap checkbox writes the saved toggle.
@@ -182,6 +185,7 @@ assert(row.keycap.keyboard == true, "modifier alone keeps listening")
 row.keycap.scripts.OnKeyDown(row.keycap, "J")
 modifiers = {}
 assert(bindings["ALT-J"] == row.entry.action and row.keycap.keyboard == false)
+assert(row.keycap.scripts.OnKeyDown == nil, "OnKeyDown removed after binding")
 row.keycap.scripts.OnClick(row.keycap)
 row.keycap.scripts.OnKeyDown(row.keycap, "ESCAPE")
 assert(bindings["ALT-J"] == row.entry.action and row.keycap.keyboard == false, "Esc cancels")
