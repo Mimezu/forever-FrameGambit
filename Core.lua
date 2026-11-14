@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.2.8"
+ns.VERSION = "1.3.0"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
@@ -10,6 +10,7 @@ ns.HELP_CONTENT_VERSION = 4
 BINDING_HEADER_FRAMEGAMBIT = "Frame Gambit"
 BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC = "Cinematic Mode"
 BINDING_NAME_FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA = "Cinematic camera"
+BINDING_NAME_FRAMEGAMBIT_TOGGLE_WINDOW = "Open window"
 local CINEMATIC_BINDING = "FRAMEGAMBIT_TOGGLE_CINEMATIC"
 local CINEMATIC_CAMERA_BINDING = "FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA"
 local LEGACY_CINEMATIC_BINDING = "PRIORITYFADER_TOGGLE_CINEMATIC"
@@ -52,6 +53,7 @@ local DEFAULTS = {
     version = 14,
     profile = "Default",
     appearanceTheme = "eui",
+    minimapButton = { hide = false, angle = 200 },
     workspaceMode = "panel",
     inputModeProfiles = { enabled = false },
     help = {
@@ -1948,42 +1950,75 @@ function ns:MigrateLegacyCinematicBinding()
     end
 end
 
-function ns:SetCinematicBinding(key)
+-- One setter for every Frame Gambit key: binds the key, drops the action's
+-- older keys, saves, and rolls everything back if the save fails.
+function ns:SetActionBinding(action, key)
     if InCombatLockdown() then return false, "Not in combat" end
-    if not SetBinding or not SaveBindings then return false, "Key bindings unavailable" end
-    local oldPrimary, oldSecondary = GetBindingKey(CINEMATIC_BINDING)
+    if not SetBinding or not SaveBindings or not GetBindingKey then return false, "Key bindings unavailable" end
+    local oldPrimary, oldSecondary = GetBindingKey(action)
     local replacedAction = key and GetBindingAction and GetBindingAction(key)
-    if key and SetBinding(key, CINEMATIC_BINDING) == false then return false, "Shortcut rejected" end
+    if key and SetBinding(key, action) == false then return false, "Shortcut rejected" end
     if oldPrimary and oldPrimary ~= key then SetBinding(oldPrimary, nil) end
     if oldSecondary and oldSecondary ~= key then SetBinding(oldSecondary, nil) end
     local bindingSet = (GetCurrentBindingSet and GetCurrentBindingSet()) or 1
     if SaveBindings(bindingSet) == false then
         if key then SetBinding(key, replacedAction and replacedAction ~= "" and replacedAction or nil) end
-        if oldPrimary then SetBinding(oldPrimary, CINEMATIC_BINDING) end
-        if oldSecondary then SetBinding(oldSecondary, CINEMATIC_BINDING) end
+        if oldPrimary then SetBinding(oldPrimary, action) end
+        if oldSecondary then SetBinding(oldSecondary, action) end
         SaveBindings(bindingSet)
         return false, "Shortcut not saved"
     end
     return true
 end
 
+function ns:SetCinematicBinding(key)
+    return self:SetActionBinding(CINEMATIC_BINDING, key)
+end
+
 function ns:SetCinematicCameraBinding(key)
-    if InCombatLockdown() then return false, "Not in combat" end
-    if not SetBinding or not SaveBindings then return false, "Key bindings unavailable" end
-    local oldPrimary, oldSecondary = GetBindingKey(CINEMATIC_CAMERA_BINDING)
-    local replacedAction = key and GetBindingAction and GetBindingAction(key)
-    if key and SetBinding(key, CINEMATIC_CAMERA_BINDING) == false then return false, "Shortcut rejected" end
-    if oldPrimary and oldPrimary ~= key then SetBinding(oldPrimary, nil) end
-    if oldSecondary and oldSecondary ~= key then SetBinding(oldSecondary, nil) end
-    local bindingSet = (GetCurrentBindingSet and GetCurrentBindingSet()) or 1
-    if SaveBindings(bindingSet) == false then
-        if key then SetBinding(key, replacedAction and replacedAction ~= "" and replacedAction or nil) end
-        if oldPrimary then SetBinding(oldPrimary, CINEMATIC_CAMERA_BINDING) end
-        if oldSecondary then SetBinding(oldSecondary, CINEMATIC_CAMERA_BINDING) end
-        SaveBindings(bindingSet)
-        return false, "Shortcut not saved"
+    return self:SetActionBinding(CINEMATIC_CAMERA_BINDING, key)
+end
+
+-- Every key the addon offers, in the order the settings show them.
+ns.KEY_ACTIONS = {
+    { id = "window", action = "FRAMEGAMBIT_TOGGLE_WINDOW", label = "Open window" },
+    { id = "mode", action = CINEMATIC_BINDING, label = "Cinematic Mode" },
+    { id = "camera", action = CINEMATIC_CAMERA_BINDING, label = "Cinematic camera" },
+    { id = "screenshot", action = "FRAMEGAMBIT_CLEAN_SCREENSHOT", label = "Clean screenshot" },
+}
+for _, entry in ipairs(ns.KEY_ACTIONS) do ns.KEY_ACTIONS[entry.id] = entry end
+
+function ns:GetActionKey(action)
+    return GetBindingKey and (GetBindingKey(action)) or nil
+end
+
+-- Modifier-only presses and Escape are not chords; modifiers combine.
+function ns.KeyChord(key)
+    if key == "ESCAPE" or key == "LALT" or key == "RALT" or key == "LCTRL" or key == "RCTRL"
+        or key == "LSHIFT" or key == "RSHIFT" or key == "LMETA" or key == "RMETA" then return nil end
+    local prefix = ""
+    if IsAltKeyDown and IsAltKeyDown() then prefix = prefix .. "ALT-" end
+    if IsControlKeyDown and IsControlKeyDown() then prefix = prefix .. "CTRL-" end
+    if IsShiftKeyDown and IsShiftKeyDown() then prefix = prefix .. "SHIFT-" end
+    return prefix .. key
+end
+
+-- Readable key name; modifiers spelled out (Blizzard's s- reads like a glyph).
+function ns.KeyText(key)
+    if not key then return nil end
+    if key:find("SHIFT%-") or key:find("CTRL%-") or key:find("ALT%-") then
+        local mods, base = key:match("^(.*%-)(.+)$")
+        mods = mods:gsub("SHIFT%-", "Shift + "):gsub("CTRL%-", "Ctrl + "):gsub("ALT%-", "Alt + ")
+        return mods .. ((GetBindingText and GetBindingText(base, "KEY_")) or base)
     end
-    return true
+    return (GetBindingText and GetBindingText(key, "KEY_")) or key
+end
+
+-- Name of whatever a key does now (nil if free or already this action).
+function ns:KeyConflict(key, action)
+    local current = key and GetBindingAction and GetBindingAction(key)
+    if not current or current == "" or current == action then return nil end
+    return (GetBindingName and GetBindingName(current)) or _G["BINDING_NAME_" .. current] or current
 end
 
 function ns:GetTargetSettings(id, create)
@@ -4937,6 +4972,7 @@ driver:SetScript("OnEvent", function(_, event, ...)
     end
     if event == "UPDATE_BINDINGS" and ns.Options and ns.Options:IsShown() then
         ns:RenderOptions()
+        if ns.RefreshSettingsPicker then ns:RefreshSettingsPicker() end
     end
     ns:Wake()
     -- The option panel updates its live-state chip from Tick.  Rebuilding its
@@ -4968,6 +5004,10 @@ function FrameGambit_ToggleCinematic()
         ns.Options.active:SetText(enabled and "Cinematic Mode on" or "Cinematic Mode off")
         ns.Options.active:SetTextColor(unpack(ns.COLORS.teal))
     end
+end
+
+function FrameGambit_ToggleWindow()
+    ns:ToggleOptions()
 end
 
 function FrameGambit_ToggleCinematicCamera()

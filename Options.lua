@@ -1574,7 +1574,50 @@ function ns:CreateOptions()
     panel.headerDivider:SetTexture("Interface\\Buttons\\WHITE8X8"); panel.headerDivider:SetVertexColor(unpack(C.border)); TrackTheme(panel.headerDivider, "borderVertex")
     SetTooltip(appearance, nil, nil)
     panel.appearance = appearance
-    subtitle:SetPoint("RIGHT", appearance, "LEFT", -10, 0)
+    local settingsPicker
+    local settingsButton = Button(header, "Settings", 80, function()
+        settingsPicker:SetShown(not settingsPicker:IsShown())
+    end)
+    settingsButton:SetPoint("RIGHT", appearance, "LEFT", -7, 0)
+    SetTooltip(settingsButton, nil, nil)
+    panel.settingsButton = settingsButton
+    settingsPicker = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+    settingsPicker:SetSize(270, 12 + (#ns.KEY_ACTIONS + 1) * 28 + 6)
+    settingsPicker:SetPoint("TOP", settingsButton, "BOTTOM", 0, -6)
+    settingsPicker:SetFrameStrata("FULLSCREEN_DIALOG")
+    settingsPicker:SetFrameLevel(panel:GetFrameLevel() + 55)
+    settingsPicker:SetClampedToScreen(true)
+    settingsPicker:EnableMouse(true)
+    Backdrop(settingsPicker, C.cardAlt, C.border)
+    ApplyEUIObject("panel", settingsPicker, { inset = true })
+    settingsPicker:Hide()
+    panel.settingsPicker = settingsPicker
+    settingsPicker.keys = {}
+    for index, entry in ipairs(ns.KEY_ACTIONS) do
+        local y = -10 - (index - 1) * 28
+        local label = Text(settingsPicker, "GameFontHighlightSmall", entry.label, C.muted)
+        label:SetPoint("TOPLEFT", 12, y - 5)
+        local keycap = Button(settingsPicker, "Set", 120, function() ns:OpenKeyCapture(entry.id) end)
+        keycap:SetPoint("TOPRIGHT", -10, y)
+        keycap:SetFrameLevel(settingsPicker:GetFrameLevel() + 1)
+        settingsPicker.keys[entry.id] = keycap
+    end
+    local minimapY = -10 - #ns.KEY_ACTIONS * 28
+    local minimapLabel = Text(settingsPicker, "GameFontHighlightSmall", "Minimap icon", C.muted)
+    minimapLabel:SetPoint("TOPLEFT", 12, minimapY - 5)
+    settingsPicker.minimap = Button(settingsPicker, "On", 120, function()
+        if ns.SetMinimapButtonShown then ns:SetMinimapButtonShown(not ns:IsMinimapButtonShown()) end
+        ns:RefreshSettingsPicker()
+    end)
+    settingsPicker.minimap:SetPoint("TOPRIGHT", -10, minimapY)
+    settingsPicker.minimap:SetFrameLevel(settingsPicker:GetFrameLevel() + 1)
+    settingsPicker:SetScript("OnShow", function()
+        if appearancePicker then appearancePicker:Hide() end
+        ns:RefreshSettingsPicker()
+        settingsPicker:Raise()
+    end)
+    panel:HookScript("OnHide", function() settingsPicker:Hide() end)
+    subtitle:SetPoint("RIGHT", settingsButton, "LEFT", -10, 0)
     subtitle:SetWordWrap(false)
     if subtitle.SetMaxLines then subtitle:SetMaxLines(1) end
     local function UpdateHeaderComposition()
@@ -1583,6 +1626,9 @@ function ns:CreateOptions()
         -- clearer without it; the sentence returns automatically when space
         -- is available again.
         subtitle:SetShown(panel:GetWidth() >= 1080)
+        -- The version shares the toolbar row in the bundled header; drop it
+        -- before it can run under the buttons at the narrowest sizes.
+        version:SetShown(activeAppearanceID == "legacy" or panel:GetWidth() >= 1000)
     end
     panel:HookScript("OnSizeChanged", UpdateHeaderComposition)
     C_Timer.After(0, UpdateHeaderComposition)
@@ -1644,6 +1690,7 @@ function ns:CreateOptions()
         appearancePicker:SetScale(math.max(0.50, math.min(1, (width - 20) / 252, (height - 20) / 236)))
     end
     appearancePicker:SetScript("OnShow", function()
+        if panel.settingsPicker then panel.settingsPicker:Hide() end
         UpdateAppearancePickerScale()
         appearancePicker:Raise()
     end)
@@ -2044,13 +2091,7 @@ end
 
 local function BindingText(getter)
     local key = getter and getter(ns)
-    if not key then return "Set shortcut" end
-    -- Blizzard's abbreviated modifier text can read like a broken glyph
-    -- beside punctuation keys (for example s-`). Spell out the modifiers.
-    if key:find("SHIFT%-") or key:find("CTRL%-") or key:find("ALT%-") then
-        return key:gsub("SHIFT%-", "Shift + "):gsub("CTRL%-", "Ctrl + "):gsub("ALT%-", "Alt + ")
-    end
-    return (GetBindingText and GetBindingText(key, "KEY_") or key) or key
+    return key and ns.KeyText(key) or "Set shortcut"
 end
 
 local function CinematicBindingText()
@@ -2061,13 +2102,17 @@ local function CinematicCameraBindingText()
     return BindingText(ns.GetCinematicCameraBinding)
 end
 
-local function CinematicKeyChord(key)
-    if key == "ESCAPE" or key == "LALT" or key == "RALT" or key == "LCTRL" or key == "RCTRL" or key == "LSHIFT" or key == "RSHIFT" then return nil end
-    local prefix = ""
-    if IsShiftKeyDown and IsShiftKeyDown() then prefix = prefix .. "SHIFT-" end
-    if IsControlKeyDown and IsControlKeyDown() then prefix = prefix .. "CTRL-" end
-    if IsAltKeyDown and IsAltKeyDown() then prefix = prefix .. "ALT-" end
-    return prefix .. key
+function ns:RefreshSettingsPicker()
+    local picker = self.Options and self.Options.settingsPicker
+    if not picker or not picker:IsShown() then return end
+    for id, keycap in pairs(picker.keys) do
+        local key = self:GetActionKey(self.KEY_ACTIONS[id].action)
+        keycap:GetFontString():SetText(key and self.KeyText(key) or "Set")
+        keycap:GetFontString():SetTextColor(unpack(key and C.text or C.muted))
+    end
+    local shown = self.IsMinimapButtonShown and self:IsMinimapButtonShown()
+    picker.minimap:GetFontString():SetText(shown and "On" or "Off")
+    SetLayoutChoiceState(picker.minimap, shown)
 end
 
 function ns:CreateCinematicKeyCapture()
@@ -2083,29 +2128,28 @@ function ns:CreateCinematicKeyCapture()
     ApplyEUIObject("panel", capture, { inset = true })
     table.insert(UISpecialFrames, capture:GetName())
     local title = Text(capture, "GameFontNormal", "Set Cinematic shortcut", C.accent); title:SetPoint("TOPLEFT", 14, -13); capture.title = title
-    capture.copy = Text(capture, "GameFontHighlightSmall", "Press a key. Esc: cancel", C.muted)
+    capture.copy = Text(capture, "GameFontHighlightSmall", "Press a key. Esc: cancel. Del: clear", C.muted)
     capture.copy:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6); capture.copy:SetPoint("RIGHT", -14, 0); capture.copy:SetJustifyH("LEFT"); capture.copy:SetWordWrap(true)
     capture.status = Text(capture, "GameFontHighlightSmall", "Waiting…", C.teal); capture.status:SetPoint("BOTTOMLEFT", 14, 16)
     local cancel = Button(capture, "Cancel", 70, function() capture:Hide() end); cancel:SetPoint("BOTTOMRIGHT", -12, 12)
     capture.use = Button(capture, "Use shortcut", 94, function()
         if capture.pending == nil then return end
-        local setter = capture.bindingKind == "camera" and ns.SetCinematicCameraBinding or ns.SetCinematicBinding
-        local ok, reason = setter(ns, capture.pending or nil)
-        if ok then capture:Hide(); ns:RenderOptions() else capture.status:SetText(reason); capture.status:SetTextColor(unpack(C.amber)) end
+        local entry = ns.KEY_ACTIONS[capture.bindingKind]
+        local ok, reason = ns:SetActionBinding(entry.action, capture.pending or nil)
+        if ok then capture:Hide(); ns:RenderOptions(); ns:RefreshSettingsPicker() else capture.status:SetText(reason); capture.status:SetTextColor(unpack(C.amber)) end
     end, true); capture.use:SetPoint("RIGHT", cancel, "LEFT", -7, 0); capture.use:Hide(); capture.status:SetPoint("RIGHT", capture.use, "LEFT", -8, 0); capture.status:SetWordWrap(true)
     capture:SetScript("OnKeyDown", function(_, key)
         if key == "ESCAPE" then capture:Hide(); return end
         if key == "BACKSPACE" or key == "DELETE" then
             capture.pending = false; capture.use:GetFontString():SetText("Clear shortcut"); capture.use:Show()
-            capture.status:SetText(capture.bindingKind == "camera" and "Clear the camera shortcut?" or "Clear the Cinematic shortcut?"); capture.status:SetTextColor(unpack(C.amber)); return
+            capture.status:SetText("Clear shortcut?"); capture.status:SetTextColor(unpack(C.amber)); return
         end
-        local chord = CinematicKeyChord(key)
+        local chord = ns.KeyChord(key)
         if not chord then return end
         capture.pending = chord; capture.use:GetFontString():SetText("Use shortcut"); capture.use:Show()
-        local occupied = GetBindingAction and GetBindingAction(chord)
-        local extra = occupied and occupied ~= "" and " Replaces " .. occupied or ""
-        local display = (GetBindingText and GetBindingText(chord, "KEY_") or chord) or chord
-        capture.status:SetText("Use " .. display .. "?" .. extra); capture.status:SetTextColor(unpack(occupied and C.amber or C.teal))
+        local occupied = ns:KeyConflict(chord, ns.KEY_ACTIONS[capture.bindingKind].action)
+        local extra = occupied and " Replaces " .. occupied or ""
+        capture.status:SetText("Use " .. ns.KeyText(chord) .. "?" .. extra); capture.status:SetTextColor(unpack(occupied and C.amber or C.teal))
     end)
     capture:SetScript("OnHide", function()
         capture.blocker:Hide()
@@ -2149,11 +2193,15 @@ local function OpenCinematicKeyCapture(self, kind)
     end
     self:CreateCinematicKeyCapture()
     local capture = self.CinematicKeyCapture
-    capture.bindingKind = kind == "camera" and "camera" or "mode"
-    capture.title:SetText(capture.bindingKind == "camera" and "Set camera shortcut" or "Set Cinematic shortcut")
+    capture.bindingKind = self.KEY_ACTIONS[kind] and kind or "mode"
+    capture.title:SetText(self.KEY_ACTIONS[capture.bindingKind].label)
     capture.status:SetText("Waiting…"); capture.status:SetTextColor(unpack(C.teal))
     capture:ClearAllPoints(); capture:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); capture.blocker:Show(); capture:Show(); capture:EnableKeyboard(true)
+end
+
+function ns:OpenKeyCapture(kind)
+    OpenCinematicKeyCapture(self, kind)
 end
 
 function ns:OpenCinematicKeyCapture()

@@ -24,7 +24,8 @@ Put the `FrameGambit` folder in `World of Warcraft/_forever_/Interface/AddOns/`,
 | `/fg pick` | Pick a frame on screen |
 | `/fg cinematic` | Toggle Cinematic |
 | `/fg status` | Run a check |
-| Key Bindings > Frame Gambit | Cinematic, Cinematic camera, Screenshot without interface |
+| Editor > Settings | Keys, minimap icon |
+| Options > AddOns > Frame Gambit | Open, keys, minimap icon |
 
 ## Data
 

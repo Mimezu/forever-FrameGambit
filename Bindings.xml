@@ -1,5 +1,8 @@
 <Bindings>
-    <Binding name="FRAMEGAMBIT_TOGGLE_CINEMATIC" header="FRAMEGAMBIT">
+    <Binding name="FRAMEGAMBIT_TOGGLE_WINDOW" header="FRAMEGAMBIT">
+        FrameGambit_ToggleWindow()
+    </Binding>
+    <Binding name="FRAMEGAMBIT_TOGGLE_CINEMATIC">
         FrameGambit_ToggleCinematic()
     </Binding>
     <Binding name="FRAMEGAMBIT_TOGGLE_CINEMATIC_CAMERA">

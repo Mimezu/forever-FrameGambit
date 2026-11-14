@@ -1,5 +1,12 @@
 # Frame Gambit changelog
 
+## 1.3.0 - 2026-11-14
+
+- Settings menu in the window: every key, minimap icon
+- New key: Open window
+- Minimap icon (drag to move)
+- Page in Options > AddOns
+
 ## 1.2.8 - 2026-11-11
 
 - Shorter labels, tooltips, messages, help and tutorial

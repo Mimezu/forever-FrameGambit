@@ -376,14 +376,21 @@ function Skin:LayoutHeader(panel, native)
 
     help:SetPoint("TOPRIGHT", header, "TOPRIGHT", native and -4 or -12, rowY)
     appearance:SetPoint("RIGHT", help, "LEFT", -TOOLBAR_GAP, 0)
+    -- Settings (keys, minimap icon) joins the utility group when present.
+    local utility = appearance
+    if panel.settingsButton then
+        panel.settingsButton:ClearAllPoints()
+        panel.settingsButton:SetPoint("RIGHT", appearance, "LEFT", -TOOLBAR_GAP, 0)
+        utility = panel.settingsButton
+    end
     local divider = panel.headerDivider
     if divider then
         divider:ClearAllPoints()
-        divider:SetPoint("RIGHT", appearance, "LEFT", -GROUP_GAP / 2, 0)
+        divider:SetPoint("RIGHT", utility, "LEFT", -GROUP_GAP / 2, 0)
         divider:SetSize(1, 18); divider:Show()
         peek:SetPoint("RIGHT", divider, "LEFT", -GROUP_GAP / 2, 0)
     else
-        peek:SetPoint("RIGHT", appearance, "LEFT", -GROUP_GAP, 0)
+        peek:SetPoint("RIGHT", utility, "LEFT", -GROUP_GAP, 0)
     end
 
     local subtitle, version = panel.subtitle, panel.version
