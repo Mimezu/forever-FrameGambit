@@ -1,5 +1,10 @@
 # Frame Gambit changelog
 
+## 1.3.2 - 2026-11-16
+
+- Clean screenshot: enemy names over characters hidden too
+- Clean screenshot: camera framing kept after the shot
+
 ## 1.3.1 - 2026-11-14
 
 - Fix: keyboard dead in game (Options page keys caught every key)
