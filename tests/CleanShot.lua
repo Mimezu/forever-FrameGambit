@@ -23,11 +23,13 @@ C_CVar = {GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cv
 local combat = false
 function InCombatLockdown() return combat end
 local uiShown, worldShown, shots, zooms = true, true, 0, 0
-UIParent = {IsShown = function() return uiShown end}
-function SetUIVisibility(v) uiShown = v end
+local uiAlpha, altZ = 0.9, 0
+UIParent = {IsShown = function() return uiShown end, GetAlpha = function() return uiAlpha end,
+    SetAlpha = function(_, a) uiAlpha = a end}
+function SetUIVisibility(v) altZ = altZ + 1; uiShown = v end
 function SetInWorldUIVisibility(v) worldShown = v end
 local seenAtShot
-function Screenshot() shots = shots + 1; seenAtShot = {hostile = cvars.UnitNameHostleNPC, ui = uiShown, world = worldShown} end
+function Screenshot() shots = shots + 1; seenAtShot = {hostile = cvars.UnitNameHostleNPC, alpha = uiAlpha, shown = uiShown, world = worldShown} end
 function CameraZoomIn() zooms = zooms + 1 end
 
 assert(loadfile(root .. "/CleanShot.lua"))("FrameGambit", {})
@@ -37,12 +39,13 @@ local function Saved() watcher.scripts.OnEvent(watcher, "SCREENSHOT_SUCCEEDED") 
 FrameGambit_CleanScreenshot()
 equal(shots, 1, "screenshot taken")
 equal(seenAtShot.hostile, "0", "red enemy names off for the shot")
-equal(seenAtShot.ui, false, "interface hidden"); equal(seenAtShot.world, false, "nameplates hidden")
+equal(seenAtShot.alpha, 0, "interface invisible"); equal(seenAtShot.shown, true, "but not hidden: no Alt+Z")
+equal(altZ, 0, "Alt+Z never used"); equal(seenAtShot.world, false, "nameplates hidden")
 equal(cvars.UnitNameOwn, "0", "every name over characters off")
 -- The game recenters the character when the interface comes back.
 cvars.CameraKeepCharacterCentered = "1"; cvars.test_cameraDynamicPitch = "0"
 Saved()
-equal(uiShown, true, "interface back"); equal(worldShown, true, "nameplates back")
+equal(uiAlpha, 0.9, "interface back at its own opacity"); equal(worldShown, true, "nameplates back")
 equal(cvars.UnitNameHostleNPC, "1", "red enemy names back")
 equal(cvars.UnitNameEnemyPlayerName, "1", "enemy player names back")
 equal(cvars.UnitNameNPC, "0", "a name setting that was off stays off")
@@ -67,5 +70,11 @@ equal(seenAtShot.hostile, "1", "combat: name settings untouched")
 Saved(); RunTimers()
 equal(cvars.UnitNameHostleNPC, "1", "combat: nothing to restore")
 combat = false
+
+-- Already hidden with Alt+Z: stays hidden.
+uiShown = false
+FrameGambit_CleanScreenshot(); Saved(); RunTimers()
+equal(uiShown, false, "Alt+Z hidden before: stays hidden"); equal(altZ, 0, "still no Alt+Z")
+uiShown = true
 
 print("PASS: " .. passed .. " clean screenshot assertions")
