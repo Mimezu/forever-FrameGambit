@@ -1,5 +1,10 @@
 # Frame Gambit changelog
 
+## 1.3.4 - 2026-11-18
+
+- Clean screenshot: minimap icons hidden too
+- Clean screenshot: frames outside the interface, or ignoring its opacity, hidden too
+
 ## 1.3.3 - 2026-11-16
 
 - Clean screenshot: no Alt+Z (interface at opacity 0), camera stays put
