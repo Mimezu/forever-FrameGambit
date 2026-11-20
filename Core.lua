@@ -1642,21 +1642,6 @@ function ns:KeepCinematicFrame(frame)
     return true, name and "Kept in Cinematic" or "Kept until reload"
 end
 
-function ns:ClearCinematicKeeps()
-    if not FrameGambitDB or not FrameGambitDB.cinematic then return end
-    FrameGambitDB.cinematic.keepNames = {}
-    runtime.cinematicKeepFrames = setmetatable({}, { __mode = "k" })
-    self:RefreshCinematicExemptions()
-    self:BeginCinematicBlackout()
-end
-
-function ns:GetCinematicKeepCount()
-    local count = 0
-    for _ in pairs(FrameGambitDB and FrameGambitDB.cinematic and FrameGambitDB.cinematic.keepNames or {}) do count = count + 1 end
-    for _ in pairs(runtime.cinematicKeepFrames or {}) do count = count + 1 end
-    return count
-end
-
 local function SetCinematicFrameAlpha(frame, alpha)
     runtime.cinematicAlphaGuard[frame] = true
     local ok = SafeSetFrameAlpha(frame, alpha)
@@ -1856,42 +1841,6 @@ function ns:EndCinematicBlackout()
     runtime.cinematicAuditAt = 0
     runtime.cinematicRevealActive = nil
     runtime.cinematicOpenWindows = setmetatable({}, { __mode = "k" })
-end
-
-function ns:ResetCinematicProfile()
-    local profile = self:GetCinematicProfile()
-    if self:IsCinematicActive() then
-        local ids = {}
-        for id in pairs(runtime.frameByID) do ids[#ids + 1] = id end
-        for _, id in ipairs(ids) do self:RestoreControlledFrame(id) end
-        for id in pairs(runtime.active) do runtime.active[id] = nil end
-        for id in pairs(runtime.hovered) do runtime.hovered[id] = nil end
-        for id in pairs(runtime.fadeOutStarted) do runtime.fadeOutStarted[id] = nil end
-    end
-    for id in pairs(runtime.revealGoal) do runtime.revealGoal[id] = nil end
-    for id in pairs(runtime.transitions) do runtime.transitions[id] = nil end
-    profile.targets, profile.groups, profile.links, profile.visibilityLinks = {}, {}, {}, {}
-    InvalidateRelationshipCache()
-    profile.nextReactionID, profile.nextGroupID = 1, 1
-    for _, component in ipairs(CINEMATIC_COMPONENTS) do
-        profile.targets[component.id] = NewCinematicSettings(profile, component.default, component.rest,
-            component.id == "minimap" and "hide_zero" or nil)
-    end
-    FrameGambitDB.cinematic.letterboxEnabled = false
-    FrameGambitDB.cinematic.letterboxHeight = 0.04
-    if self.SetCinematicFOV then self:SetCinematicFOV(90) else FrameGambitDB.cinematic.cameraFOV = 90 end
-    if self.SetCinematicCameraOffsetDefault then
-        self:SetCinematicCameraOffsetDefault(false)
-    else
-        FrameGambitDB.cinematic.cameraOffsetDefault = false
-    end
-    if self.RefreshCinematicLetterbox then self:RefreshCinematicLetterbox() end
-    if self:IsCinematicActive() then
-        if self.PrimeCinematicTargets then self:PrimeCinematicTargets() end
-        self:BeginCinematicBlackout()
-    end
-    self:Wake()
-    self:RefreshOptions()
 end
 
 function ns:ToggleCinematic(keepOptionsOpen)
@@ -3191,11 +3140,6 @@ function ns:AddLink(parentID, childID)
     return true
 end
 
-function ns:HasHoverConnection(id)
-    local _, group = self:GetRevealGroup(id)
-    return group ~= nil or next(self:GetLinkedChildren(id)) ~= nil or #self:GetLinkParents(id) > 0
-end
-
 function ns:RequiresUnconditionalMouseover(id)
     local _, group = self:GetRevealGroup(id)
     return group ~= nil
@@ -3312,13 +3256,6 @@ function ns:RestorePendingFrame(frame)
         runtime.pendingRelease[frame] = nil
         if release then pcall(release, frame) end
         return true
-    end
-    return false
-end
-
-function ns:HasReaction(settings, condition)
-    for _, reaction in ipairs(settings.reactions or {}) do
-        if reaction.condition == condition then return true end
     end
     return false
 end

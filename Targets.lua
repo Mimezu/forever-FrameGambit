@@ -832,15 +832,6 @@ function ns:FrameInteractionContainsCursor(frame, includeDescendants, x, y)
     return x >= left and x <= left + width and y >= bottom and y <= bottom + height
 end
 
--- Kept as a compatibility helper for integrations that used the 2.1 picker
--- method. It performs one bounded snapshot, never a permanent live scan.
-function ns:GetFramesUnderCursor()
-    local atlas = self:BeginPickerAtlas()
-    while not self:ContinuePickerAtlas(atlas, 500) do end
-    local x, y = self:GetUICursorPosition()
-    return self:GetPickerAtlasCandidates(atlas, x, y)
-end
-
 function ns:GetUIParentFrameRoots(includeHidden)
     local result = {}
     for _, root in ipairs(UIParentChildren()) do

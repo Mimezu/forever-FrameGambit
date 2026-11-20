@@ -113,10 +113,6 @@ function ns:NormalizeLayoutPivot(value)
     return value ~= "CENTER" and POINT_FACTORS[value] and value or nil
 end
 
-function ns:ReactionChangesLayout(reaction)
-    return type(reaction) == "table" and (reaction.scale ~= nil or reaction.offsetX ~= nil)
-end
-
 function ns:TargetUsesLayout(settings)
     if type(settings) ~= "table" then return false end
     if settings.restScale ~= nil or settings.restOffsetX ~= nil then return true end

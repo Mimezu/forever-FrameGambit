@@ -247,10 +247,6 @@ function ns:SetCinematicCameraOffsetDefault(enabled)
     return true
 end
 
-function ns:IsCinematicCameraOffsetEnabled()
-    return state.active and state.offsetEnabled == true
-end
-
 local function AcceptExperimentalCamera()
     -- Cinematic intentionally uses experimental camera CVars. Suppress this
     -- warning before applying them, and repeat after each UI reload because
