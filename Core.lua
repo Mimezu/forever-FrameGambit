@@ -3001,6 +3001,8 @@ function ns:RemoveTarget(id)
     runtime.hovered[id] = nil
     runtime.fadeOutStarted[id] = nil
     runtime.revealGoal[id] = nil
+    runtime.immediateApply[id] = nil
+    runtime.captureHold[id] = nil
     local profile = self:Profile()
     for key, group in pairs(profile.groups or {}) do
         if group.members then

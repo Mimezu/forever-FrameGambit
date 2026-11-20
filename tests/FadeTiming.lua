@@ -210,4 +210,15 @@ ns:ApplyTarget("cluster_hold", now)
 assert(math.abs(MinimapCluster.alpha - 0.5) < 0.01, "then snaps to Otherwise at once, ignoring the 3.9 s wait (" .. MinimapCluster.alpha .. ")")
 assert(ns.runtime.transitions.cluster_hold == nil and ns.runtime.captureHold.cluster_hold == nil, "no fade, hold released")
 ns:RemoveTarget("cluster_hold")
+-- Removing a target whose frame never appeared must let the evaluator sleep.
+local savedTargets = ns:Profile().targets
+ns:Profile().targets = {}
+for id in pairs(ns.runtime.immediateApply) do ns.runtime.immediateApply[id] = nil end
+assert(not ns:HasEvaluatorWork(), "empty profile idles")
+ns.TargetByID.missing_frame = { id = "missing_frame", names = { "NoSuchFrameAnywhere" }, protected = false }
+ns:GetTargetSettings("missing_frame", true)
+ns:PrimeProfileTargets()
+ns:RemoveTarget("missing_frame")
+assert(not ns:HasEvaluatorWork(), "removed missing-frame target leaves no evaluator work")
+ns:Profile().targets = savedTargets
 print("PASS: legacy and partial timing migration, copy/paste, old/new exports, separate animation durations and fade-out delay")
