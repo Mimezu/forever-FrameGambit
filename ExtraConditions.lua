@@ -44,6 +44,11 @@ ns.CONDITION_INFO.campfire_sitting = {
     help = "Not detected? /fg campfire",
 }
 
+ns.CONDITION_INFO.eating_drinking = {
+    label = "Eating or drinking", category = "character", kind = "state",
+    help = nil,
+}
+
 -- UI map IDs, not localized zone names. Child maps inherit their city's ID.
 local CITY_MAPS = {
     [84] = true, [85] = true, [87] = true, [88] = true, [89] = true, [90] = true,
@@ -122,6 +127,39 @@ local function SittingAtCampfire()
     end
     for spellID in pairs(CampfireAuras() or {}) do
         if Has(spellID) then return true end
+    end
+    return false
+end
+
+-- Every food/drink item applies a buff named after one of these spells
+-- (Food, Drink, Food & Drink, mage Refreshment). Food 433 / Drink 430 names
+-- are also read through the client so other locales match.
+local MEAL_SPELLS = { 433, 430 }
+local MEAL_FALLBACK = { "Food", "Drink", "Food & Drink", "Refreshment" }
+local mealNames
+
+local function MealNames()
+    if mealNames then return mealNames end
+    local names = {}
+    for _, name in ipairs(MEAL_FALLBACK) do names[name] = true end
+    local getName = C_Spell and C_Spell.GetSpellName
+    for _, spellID in ipairs(MEAL_SPELLS) do
+        local name = getName and Read(getName, spellID) or Read(GetSpellInfo, spellID)
+        if type(name) == "string" and name ~= "" then names[name] = true end
+    end
+    mealNames = names
+    return names
+end
+
+local function EatingOrDrinking()
+    local byIndex = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    if type(byIndex) ~= "function" then return nil end
+    local names = MealNames()
+    for index = 1, 40 do
+        local aura = Read(byIndex, "player", index, "HELPFUL")
+        if type(aura) ~= "table" then break end
+        local name = aura.name
+        if not Secret(name) and type(name) == "string" and names[name] then return true end
     end
     return false
 end
@@ -209,6 +247,7 @@ function ns:BuildExtraConditionContext(needed, context)
     if needed.major_city then context.major_city = InMajorCity() end
     if needed.elite_combat then context.elite_combat = InEliteCombat() end
     if needed.campfire_sitting then context.campfire_sitting = SittingAtCampfire() end
+    if needed.eating_drinking then context.eating_drinking = EatingOrDrinking() end
 end
 
 -- Compile localized printf templates, preserving positional argument indices.

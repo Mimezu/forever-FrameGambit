@@ -188,11 +188,23 @@ ns:HandleCampfireCommand(""); assert(FrameGambitDB.campfireAuras == nil, "Untime
 ns:HandleCampfireCommand("1"); assert(FrameGambitDB.campfireAuras[8])
 print = _G.__print
 
+-- Eating or drinking: one condition for Food, Drink and their combined buffs.
+local mealNeed = { eating_drinking = true }
+local function eating() local c = {}; ns:BuildExtraConditionContext(mealNeed, c); return c.eating_drinking end
+playerAuras = { { spellId = 1, name = "Power Word: Fortitude" } }
+assert(eating() == false, "Other buffs are not a meal")
+playerAuras[2] = { spellId = 1131, name = "Food" }; assert(eating() == true, "Food")
+playerAuras[2] = { spellId = 1135, name = "Drink" }; assert(eating() == true, "Drink")
+playerAuras[2] = { spellId = 9, name = "Food & Drink" }; assert(eating() == true, "Food & Drink")
+playerAuras[2] = { spellId = 9, name = "Well Fed" }; assert(eating() == false, "Well Fed is after eating")
+playerAuras[2] = { spellId = 9, name = secret }; assert(eating() == false, "Secret name is not a meal")
+playerAuras[2] = { spellId = 9, name = "Drink", harmful = true }; assert(eating() == false, "Only helpful auras")
+
 -- The module uses the same shared evaluator and profile wire format as Core.
 ns.IsCinematicActive = function() return false end
 ns.ResolveTarget = function() return {} end
 local reactions = {}
-for index, id in ipairs({ "major_city", "party_combat", "elite_combat", "chat_party_loot", "chat_loot_winner", "campfire_sitting" }) do
+for index, id in ipairs({ "major_city", "party_combat", "elite_combat", "chat_party_loot", "chat_loot_winner", "campfire_sitting", "eating_drinking" }) do
     reactions[index] = { id = index, condition = id, opacity = 1 }
 end
 FrameGambitDB = { profile = "Default", profiles = { Default = { targets = {

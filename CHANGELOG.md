@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.11 - 2026-11-20
+
+- New condition: Eating or drinking (Player)
+
 ## 1.3.10 - 2026-11-20
 
 - Version shown in the editor and /fg audit reads the TOC (was stuck at 1.3.0)
