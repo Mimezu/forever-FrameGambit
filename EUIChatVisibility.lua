@@ -195,7 +195,7 @@ local function Release(frame)
         if fallbackRelease then fallbackRelease(frame) end
         return
     end
-    if frame ~= proxy or not state.active then return end
+    if not state.active then return end
     state.active = false
     state.applied = 1
     local _, chat = Module()

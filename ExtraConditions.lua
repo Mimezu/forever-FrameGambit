@@ -184,8 +184,7 @@ function ns:HandleCampfireCommand(argument)
     if #auras == 0 then
         return Say("No auras. Sit at a campfire first")
     end
-    Say(#short == 0 and "Pick the campfire aura:"
-        or "Pick the campfire aura:")
+    Say("Pick the campfire aura:")
     for index, aura in ipairs(auras) do
         Say(("  %d. %s (%d)%s"):format(index, aura.name, aura.spellID,
             aura.remaining and (" - " .. aura.remaining .. "s left") or ""))

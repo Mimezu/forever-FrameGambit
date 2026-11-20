@@ -2811,11 +2811,7 @@ end
 function ns:OpenProfilePicker()
     self:CreateProfilePicker()
     local picker = self.ProfilePicker
-    if self:IsCinematicActive() then
-        picker.status:SetText("")
-    else
-        picker.status:SetText("")
-    end
+    picker.status:SetText("")
     picker.status:SetTextColor(unpack(C.muted))
     picker:ClearAllPoints(); picker:SetPoint("CENTER", self.Options, "CENTER", 0, 0)
     self:HideAppearancePicker(); picker.blocker:Show(); picker:Show(); self:RenderProfilePicker()

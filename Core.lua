@@ -3254,9 +3254,7 @@ function ns:AddVisibilityLink(parentID, childID)
     self:InvalidateTargetTransition(childID)
     self:Wake()
     self:RefreshOptions()
-    return true, childWasManaged
-        and "Linked"
-        or "Linked"
+    return true, "Linked"
 end
 
 function ns:EnsureConnectedHoverRules()
