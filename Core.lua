@@ -1726,6 +1726,9 @@ function ns:BeginCinematicBlackout()
     if not self:IsCinematicActive() or not self.GetUIParentFrameRoots then return false end
     if InCombatLockdown() then runtime.cinematicScanPending = true; return false, "Finishes after combat" end
     runtime.cinematicScanPending = nil
+    -- Root ancestry is stable for the length of one scan: reuse those answers.
+    local ownMemo = not self.tickMemo
+    if ownMemo then self.tickMemo = { stamp = GetTime() } end
     local roots = self:GetUIParentFrameRoots(true)
     self:RefreshCinematicExemptions(roots)
     local count = 0
@@ -1744,14 +1747,15 @@ function ns:BeginCinematicBlackout()
     runtime.cinematicRootScanAt = GetTime()
     runtime.cinematicRootChildCount = UIParentChildCount()
     self:UpdateCinematicBlackout(true)
+    if ownMemo then self.tickMemo = nil end
     return true, count
 end
 
 -- The full root scan costs tens of ms with a large UI. New roots always change
 -- UIParent's child count, so the periodic check compares that count every
--- 2.5 s and runs the full scan only when it moved, plus a 15 s safety sweep.
+-- 2.5 s and runs the full scan only when it moved, plus a 60 s safety sweep.
 local CINEMATIC_ROOT_CHECK_INTERVAL = 2.5
-local CINEMATIC_ROOT_SWEEP_INTERVAL = 15
+local CINEMATIC_ROOT_SWEEP_INTERVAL = 60
 function ns:CinematicRootScanDue(now)
     local since = now - (runtime.cinematicRootScanAt or 0)
     if since >= CINEMATIC_ROOT_SWEEP_INTERVAL then return true end
