@@ -36,13 +36,13 @@ ns:BeginCinematicBlackout()
 assert(scans == 2)
 now = now + 2.5
 assert(not ns:CinematicRootScanDue(now), "count settled")
--- The safety sweep still runs every 60 s.
-now = now + 60
-assert(ns:CinematicRootScanDue(now), "60 s sweep")
+-- No periodic sweep: an unchanged count never rescans, however long.
+now = now + 600
+assert(not ns:CinematicRootScanDue(now), "no sweep")
 -- No child count available: always scan, as before.
 UIParent.GetNumChildren = nil
 ns:BeginCinematicBlackout()
 now = now + 2.5
 assert(ns:CinematicRootScanDue(now), "unknown count falls back to scanning")
 assert(ns.tickMemo == nil, "scan memo cleared")
-print("PASS: Cinematic root rescan only on child-count change, 60 s sweep, fallback without a count")
+print("PASS: Cinematic root rescan only on child-count change, no sweep, fallback without a count")

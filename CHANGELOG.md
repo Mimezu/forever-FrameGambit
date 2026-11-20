@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.8 - 2026-11-20
+
+- Cinematic: no periodic safety sweep (no more hitch); new frames still caught within 2.5 s
+
 ## 1.3.7 - 2026-11-20
 
 - Cinematic: safety sweep every 60 s instead of 15 s (new frames still caught within 2.5 s)

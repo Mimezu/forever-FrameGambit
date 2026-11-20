@@ -1751,14 +1751,14 @@ function ns:BeginCinematicBlackout()
     return true, count
 end
 
--- The full root scan costs tens of ms with a large UI. New roots always change
--- UIParent's child count, so the periodic check compares that count every
--- 2.5 s and runs the full scan only when it moved, plus a 60 s safety sweep.
+-- The full root scan costs tens of ms with a large UI. Every root that exists
+-- (shown or hidden) is leased with OnShow/SetAlpha hooks, so only roots created
+-- later need a scan, and a new root changes UIParent's child count. The
+-- periodic check compares that count every 2.5 s and scans only when it moved.
+-- Entering Cinematic, panels and rule edits still scan at once.
 local CINEMATIC_ROOT_CHECK_INTERVAL = 2.5
-local CINEMATIC_ROOT_SWEEP_INTERVAL = 60
 function ns:CinematicRootScanDue(now)
     local since = now - (runtime.cinematicRootScanAt or 0)
-    if since >= CINEMATIC_ROOT_SWEEP_INTERVAL then return true end
     if since < CINEMATIC_ROOT_CHECK_INTERVAL then return false end
     if now - (runtime.cinematicRootCheckAt or 0) < CINEMATIC_ROOT_CHECK_INTERVAL then return false end
     runtime.cinematicRootCheckAt = now
