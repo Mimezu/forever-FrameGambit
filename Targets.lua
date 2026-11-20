@@ -252,9 +252,11 @@ end
 local STRATA_ORDER = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
 local PICKER_OVERVIEW_LIMIT = 120
 
+local function IndexFrame(frame, key) return frame[key] end
+
 local function SafeMethod(frame, method, ...)
     if not frame then return nil end
-    local methodOK, func = pcall(function() return frame[method] end)
+    local methodOK, func = pcall(IndexFrame, frame, method)
     if not methodOK or type(func) ~= "function" then return nil end
     local ok, a, b, c, d = pcall(func, frame, ...)
     -- The frame walker touches UI owned by Blizzard and other addons.  Some

@@ -76,7 +76,7 @@ for _ = 1, 20 do
 end
 proxy:SetAlpha(0)
 local late = Frame(ChatFrame27, 0.7, true)
-now = now + 0.5; ns:RefreshChatStack()
+now = now + 2; ns:RefreshChatStack()
 assert(late.alpha == 0, "new anonymous escapee must join on audit")
 proxy:SetAlpha(1)
 assert(late.alpha == 0.7)
@@ -93,7 +93,7 @@ ChatFrame27.rounded = true
 target.acquire(proxy)
 for _ = 1, 30 do
     proxy:SetAlpha(0.123)
-    now = now + 0.5; ns:RefreshChatStack()
+    now = now + 2; ns:RefreshChatStack()
     proxy:SetAlpha(1)
     assert(ChatFrame27.alpha == 1, "rounded client alpha must never become the native baseline")
 end

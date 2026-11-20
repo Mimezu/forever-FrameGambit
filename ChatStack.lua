@@ -10,9 +10,11 @@ local surfaces = {}
 local Refresh
 local dirty = true
 
+local function IndexFrame(frame, key) return frame[key] end
+
 local function Method(frame, key, ...)
     if not frame then return nil end
-    local ok, fn = pcall(function() return frame[key] end)
+    local ok, fn = pcall(IndexFrame, frame, key)
     if not ok or type(fn) ~= "function" then return nil end
     local success, value = pcall(fn, frame, ...)
     if success and not (issecretvalue and issecretvalue(value)) then return value end
@@ -61,6 +63,9 @@ local function Hook(frame)
     end)
 end
 
+local CHILD_GETTERS = { "GetChildren", "GetRegions" }
+local CHAT_SUFFIXES = { "Tab", "EditBox", "ButtonFrame", "Minimized" }
+
 local function Collect()
     local list, seen = {}, {}
     local function Add(frame)
@@ -73,7 +78,7 @@ local function Collect()
         local frame = _G[name]
         if not frame then return end
         Add(frame)
-        for _, suffix in ipairs({ "Tab", "EditBox", "ButtonFrame", "Minimized" }) do
+        for _, suffix in ipairs(CHAT_SUFFIXES) do
             Add(_G[name .. suffix])
         end
         Add(frame.editBox)
@@ -95,7 +100,7 @@ local function Collect()
     local budget = 1024
     local function Walk(frame, depth)
         if depth > 12 or budget <= 0 then return end
-        for _, getter in ipairs({ "GetChildren", "GetRegions" }) do
+        for _, getter in ipairs(CHILD_GETTERS) do
             if type(frame[getter]) == "function" then
                 local values = { pcall(frame[getter], frame) }
                 if table.remove(values, 1) then
@@ -243,14 +248,17 @@ for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED",
     events:RegisterEvent(event)
 end
 events:SetScript("OnEvent", function() InstallHooks(); Lifecycle() end)
--- Lifecycle signals discover new windows and recycled chrome. Core may also
--- call this bounded shared audit while its evaluator is already awake.
+-- Lifecycle signals discover new windows and recycled chrome at once. Core
+-- also calls this bounded shared audit while its evaluator is awake; the full
+-- tree walk costs a few ms, so the audit for anonymous escapees runs every 2 s
+-- (SetAlpha post-hooks already keep owned roots in step between audits).
+local AUDIT_INTERVAL = 2
 local nextAudit = 0
 function ns:RefreshChatStack()
     if not active and not next(owned) then return end
     local now = GetTime()
-    if now < nextAudit then return end
-    nextAudit = now + 0.5
+    if not dirty and now < nextAudit then return end
+    nextAudit = now + AUDIT_INTERVAL
     Refresh()
 end
 InstallHooks()

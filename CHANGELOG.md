@@ -1,5 +1,11 @@
 # Frame Gambit changelog
 
+## 1.3.5 - 2026-11-20
+
+- Cinematic: no stutter every 2.5 s (full UI rescan only when frames change, else every 15 s)
+- Chat group: full chat scan every 2 s instead of 0.5 s
+- Lighter frame checks
+
 ## 1.3.4 - 2026-11-18
 
 - Clean screenshot: minimap icons hidden too

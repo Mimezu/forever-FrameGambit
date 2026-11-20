@@ -502,6 +502,18 @@ end
 local function CallFrameIsShown(frame)
     return frame:IsShown()
 end
+-- Named callees for pcall: the hot frame checks run millions of times per
+-- session, and an inline closure per call was a large share of their cost.
+local function CallFrameGetName(frame) return frame:GetName() end
+local function CallFrameGetParent(frame) return frame:GetParent() end
+local function CallFrameGetStrata(frame) return frame:GetFrameStrata() end
+local function CallFrameIsMouseEnabled(frame) return frame:IsMouseEnabled() end
+local function CallFrameGetNumChildren(frame) return frame:GetNumChildren() end
+local function UIParentChildCount()
+    if not UIParent then return nil end
+    local ok, count = pcall(CallFrameGetNumChildren, UIParent)
+    if ok and not IsSecret(count) and type(count) == "number" then return count end
+end
 
 local function CallFrameGetRect(frame)
     return frame:GetRect()
@@ -1262,7 +1274,7 @@ local CINEMATIC_LOCKED_NAMES = {
 
 local function SafeFrameName(frame)
     if not frame then return nil end
-    local ok, name = pcall(function() return frame:GetName() end)
+    local ok, name = pcall(CallFrameGetName, frame)
     return ok and not IsSecret(name) and type(name) == "string" and name or nil
 end
 
@@ -1274,13 +1286,13 @@ end
 
 local function SafeFrameStrata(frame)
     if not frame then return nil end
-    local ok, strata = pcall(function() return frame:GetFrameStrata() end)
+    local ok, strata = pcall(CallFrameGetStrata, frame)
     return ok and not IsSecret(strata) and type(strata) == "string" and strata or nil
 end
 
 local function SafeFrameMouseEnabled(frame)
     if not frame then return false end
-    local ok, enabled = pcall(function() return frame:IsMouseEnabled() end)
+    local ok, enabled = pcall(CallFrameIsMouseEnabled, frame)
     return ok and not IsSecret(enabled) and enabled == true
 end
 
@@ -1512,7 +1524,7 @@ local function IsNativeBankFrame(frame)
         if not frame then return false end
         local name = SafeFrameName(frame)
         if name == "BankFrame" or name == "BankPanel" or name == "GuildBankFrame" then return true end
-        local ok, parent = pcall(function() return frame:GetParent() end)
+        local ok, parent = pcall(CallFrameGetParent, frame)
         if not ok or IsSecret(parent) or parent == frame then return false end
         frame = parent
     end
@@ -1529,7 +1541,7 @@ local function IsNativeSpellAlertFrame(frame)
     for _ = 1, 16 do
         if IsSecret(frame) or not frame then return false end
         if frame == overlay then return true end
-        local ok, parent = pcall(function() return frame:GetParent() end)
+        local ok, parent = pcall(CallFrameGetParent, frame)
         if not ok or IsSecret(parent) or parent == frame then return false end
         frame = parent
     end
@@ -1730,8 +1742,24 @@ function ns:BeginCinematicBlackout()
     end
     runtime.cinematicBlackoutCount = count
     runtime.cinematicRootScanAt = GetTime()
+    runtime.cinematicRootChildCount = UIParentChildCount()
     self:UpdateCinematicBlackout(true)
     return true, count
+end
+
+-- The full root scan costs tens of ms with a large UI. New roots always change
+-- UIParent's child count, so the periodic check compares that count every
+-- 2.5 s and runs the full scan only when it moved, plus a 15 s safety sweep.
+local CINEMATIC_ROOT_CHECK_INTERVAL = 2.5
+local CINEMATIC_ROOT_SWEEP_INTERVAL = 15
+function ns:CinematicRootScanDue(now)
+    local since = now - (runtime.cinematicRootScanAt or 0)
+    if since >= CINEMATIC_ROOT_SWEEP_INTERVAL then return true end
+    if since < CINEMATIC_ROOT_CHECK_INTERVAL then return false end
+    if now - (runtime.cinematicRootCheckAt or 0) < CINEMATIC_ROOT_CHECK_INTERVAL then return false end
+    runtime.cinematicRootCheckAt = now
+    local count = UIParentChildCount()
+    return count == nil or count ~= runtime.cinematicRootChildCount
 end
 
 function ns:UpdateCinematicBlackout(force)
@@ -1810,6 +1838,7 @@ function ns:EndCinematicBlackout()
     end
     runtime.cinematicBlackoutCount = 0
     runtime.cinematicRootScanAt = 0
+    runtime.cinematicRootChildCount = nil
     runtime.cinematicAuditAt = 0
     runtime.cinematicRevealActive = nil
     runtime.cinematicOpenWindows = setmetatable({}, { __mode = "k" })
@@ -4459,7 +4488,7 @@ function ns:Tick(elapsed)
         self:UpdateMinimapStack(rescan)
     end
     if self:IsCinematicActive() then
-        if not InCombatLockdown() and now - (runtime.cinematicRootScanAt or 0) >= 2.5 then
+        if not InCombatLockdown() and self:CinematicRootScanDue(now) then
             self:BeginCinematicBlackout()
         else
             self:UpdateCinematicBlackout()

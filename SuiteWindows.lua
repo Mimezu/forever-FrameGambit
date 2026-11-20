@@ -26,15 +26,18 @@ local function IsSecret(value)
     return issecretvalue and issecretvalue(value) or false
 end
 
+local function GetNameOf(frame) return frame:GetName() end
+local function GetParentOf(frame) return frame:GetParent() end
+
 function ns:IsCinematicSuiteWindow(frame)
     for _ = 1, 64 do
         if IsSecret(frame) or not frame then return false end
         if frame == UIParent or frame == WorldFrame then return false end
         if registered[frame] then return true end
-        local ok, name = pcall(function() return frame:GetName() end)
+        local ok, name = pcall(GetNameOf, frame)
         if ok and not IsSecret(name) and type(name) == "string" and names[name]
             and _G[name] == frame then return true end
-        local parentOK, parent = pcall(function() return frame:GetParent() end)
+        local parentOK, parent = pcall(GetParentOf, frame)
         if not parentOK or IsSecret(parent) or parent == frame then return false end
         frame = parent
     end
