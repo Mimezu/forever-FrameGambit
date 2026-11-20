@@ -977,6 +977,7 @@ local function InspectorSwitch(parent, enabled)
         check:SetPoint("CENTER")
         check:SetChecked(enabled)
         check:EnableMouse(false)
+        toggle.check = check
         return toggle
     end
     toggle.thumb = toggle:CreateTexture(nil, "OVERLAY"); toggle.thumb:SetSize(14, 14); toggle.thumb:SetColorTexture(unpack(enabled and C.teal or C.muted))
@@ -995,6 +996,58 @@ local function InspectorActionCard(parent, anchor, iconKind, title, enabled, cal
     card.state:SetPoint("TOPLEFT", 52, -39); card.state:SetWidth(20); card.state:SetJustifyH("LEFT")
     card.switch = InspectorSwitch(card, enabled); card.switch:SetPoint("LEFT", 78, activeAppearanceID == "legacy" and -10 or -12)
     card.arrow = CreateFrame("Frame", nil, card); card.arrow:SetSize(12, 12); card.arrow:SetPoint("RIGHT", -10, 0); DrawTriangle(card.arrow, "right")
+    return card
+end
+
+-- Editor widgets are reused across redraws: WoW never frees frames.
+-- A reused label changes colour, so its theme role must change with it.
+local function RetintText(label, color)
+    local roles = themeObjects[label]
+    if roles then roles.text, roles.tealText, roles.primaryText, roles.mutedText = nil, nil, nil, nil end
+    if color == C.accent then TrackTheme(label, "text") end
+    if color == C.teal then TrackTheme(label, "tealText") end
+    if color == C.text then TrackTheme(label, "primaryText") end
+    if color == C.muted then TrackTheme(label, "mutedText") end
+    label:SetTextColor(unpack(color))
+end
+
+local function UpdateInspectorSwitch(toggle, enabled)
+    themeObjects[toggle] = nil
+    Backdrop(toggle, enabled and { 0.03, 0.18, 0.17, 1 } or C.cardAlt, enabled and C.teal or C.border)
+    if toggle.check then
+        ClearOwnedBackdrop(toggle)
+        toggle.check:SetChecked(enabled)
+        return
+    end
+    toggle.thumb:SetColorTexture(unpack(enabled and C.teal or C.muted))
+    toggle.thumb:ClearAllPoints()
+    toggle.thumb:SetPoint(enabled and "RIGHT" or "LEFT", enabled and -3 or 3, 0)
+end
+
+-- One pool per editor window and appearance; a skin switch starts a new one
+-- because card switches, icons and rows are built for the skin in use.
+local function EditorPool(panel)
+    local pool = panel._editorPool
+    if not pool or pool.appearance ~= activeAppearanceID then
+        pool = { appearance = activeAppearanceID, cards = {}, statusRows = {} }
+        panel._editorPool = pool
+    end
+    return pool
+end
+
+local function PooledInspectorCard(pool, parent, anchor, iconKind, title, enabled, callback)
+    local card = pool.cards[iconKind]
+    if not card then
+        card = InspectorActionCard(parent, anchor, iconKind, title, enabled, callback)
+        pool.cards[iconKind] = card
+        return card
+    end
+    card:ClearAllPoints(); card:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -7)
+    card.state:SetText(enabled and "On" or "Off")
+    RetintText(card.state, enabled and C.teal or C.muted)
+    UpdateInspectorSwitch(card.switch, enabled)
+    card:SetScript("OnClick", callback)
+    card:Show()
     return card
 end
 
@@ -4461,6 +4514,7 @@ function ns:RenderSelectedTarget(id)
     local panel = self.Options
     ClearChildren(panel.reactionContent); ClearChildren(panel.presenceContent)
     panel.addReactionButton, panel.otherwiseRow, panel.outlineButton, panel.tutorialUseButton = nil, nil, nil, nil
+    local pool = EditorPool(panel)
     local target = self.TargetByID[id]
     local settings = target and self:GetTargetSettings(id) or nil
     local canForget = target ~= nil and self:CanForgetCustomTarget(id)
@@ -4482,8 +4536,13 @@ function ns:RenderSelectedTarget(id)
         panel.centerHint:SetText("")
         panel.active:SetText("")
         panel.active:SetTextColor(unpack(C.muted))
-        local begin = Button(panel.reactionContent, "Pick a frame", 116, function() ns:StartPicker() end, true)
-        begin:SetPoint("TOPLEFT", 0, 0)
+        local begin = pool.begin
+        if not begin then
+            begin = Button(panel.reactionContent, "Pick a frame", 116, function() ns:StartPicker() end, true)
+            begin:SetPoint("TOPLEFT", 0, 0)
+            pool.begin = begin
+        end
+        begin:Show()
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = begin
         panel.reactionContent:SetHeight(30)
         self:FitWorkspaceCards()
@@ -4495,11 +4554,21 @@ function ns:RenderSelectedTarget(id)
         panel.centerHint:SetText("")
         panel.active:SetText(status)
         panel.active:SetTextColor(unpack(C[statusTone] or C.amber))
-        local detail = Text(panel.reactionContent, "GameFontHighlightSmall", statusNote, C.muted)
-        detail:SetPoint("TOPLEFT", 0, 0); detail:SetPoint("RIGHT", -10, 0); detail:SetJustifyH("LEFT"); detail:SetWordWrap(true)
+        local detail = pool.unavailableDetail
+        if not detail then
+            detail = Text(panel.reactionContent, "GameFontHighlightSmall", statusNote, C.muted)
+            detail:SetPoint("TOPLEFT", 0, 0); detail:SetPoint("RIGHT", -10, 0); detail:SetJustifyH("LEFT"); detail:SetWordWrap(true)
+            pool.unavailableDetail = detail
+        end
+        detail:SetText(statusNote or ""); detail:Show()
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = detail
-        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Rules kept", C.muted)
-        help:SetPoint("TOPLEFT", detail, "BOTTOMLEFT", 0, -10); help:SetPoint("RIGHT", -10, 0); help:SetJustifyH("LEFT"); help:SetWordWrap(true)
+        local help = pool.unavailableHelp
+        if not help then
+            help = Text(panel.reactionContent, "GameFontHighlightSmall", "Rules kept", C.muted)
+            help:SetPoint("TOPLEFT", detail, "BOTTOMLEFT", 0, -10); help:SetPoint("RIGHT", -10, 0); help:SetJustifyH("LEFT"); help:SetWordWrap(true)
+            pool.unavailableHelp = help
+        end
+        help:Show()
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = help
         panel.reactionContent:SetHeight(82)
         self:FitWorkspaceCards()
@@ -4510,17 +4579,28 @@ function ns:RenderSelectedTarget(id)
     if not settings then
         panel.active:SetText("No rules yet")
         panel.active:SetTextColor(unpack(C.muted))
-        local use = Button(panel.reactionContent, "Use this frame", 130, function()
+        local use = pool.useButton
+        if not use then
+            use = Button(panel.reactionContent, "Use this frame", 130, nil, true)
+            use:SetPoint("TOPLEFT", 0, 0)
+            pool.useButton = use
+        end
+        use:SetScript("OnClick", function()
             ns:AddTarget(id)
             ns:RenderOptions()
-        end, true)
+        end)
+        use:Show()
         panel.tutorialUseButton = use
-        use:SetPoint("TOPLEFT", 0, 0)
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = use
-        local help = Text(panel.reactionContent, "GameFontHighlightSmall", "Mouseover and In combat: 100%. Otherwise: 12%", C.muted)
-        help:SetPoint("TOPLEFT", use, "BOTTOMLEFT", 0, -10)
-        help:SetPoint("RIGHT", -10, 0)
-        help:SetJustifyH("LEFT"); help:SetWordWrap(true)
+        local help = pool.useHelp
+        if not help then
+            help = Text(panel.reactionContent, "GameFontHighlightSmall", "Mouseover and In combat: 100%. Otherwise: 12%", C.muted)
+            help:SetPoint("TOPLEFT", use, "BOTTOMLEFT", 0, -10)
+            help:SetPoint("RIGHT", -10, 0)
+            help:SetJustifyH("LEFT"); help:SetWordWrap(true)
+            pool.useHelp = help
+        end
+        help:Show()
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = help
         panel.reactionContent:SetHeight(70)
         self:FitWorkspaceCards()
@@ -4718,20 +4798,36 @@ function ns:RenderSelectedTarget(id)
         end)
         panel.reactionContent._rows[#panel.reactionContent._rows + 1] = row; y = y + row:GetHeight() + 6
     end
-    local add = Button(panel.reactionContent, "+ Add reaction", 130, function() ns:OpenReactionPalette(id) end, true)
-    add:SetPoint("TOPLEFT", 0, -y); panel.reactionContent._rows[#panel.reactionContent._rows + 1] = add; y = y + 38
+    local add = pool.addReaction
+    if not add then
+        add = Button(panel.reactionContent, "+ Add reaction", 130, nil, true)
+        pool.addReaction = add
+    end
+    add:SetScript("OnClick", function() ns:OpenReactionPalette(id) end)
+    add:ClearAllPoints(); add:SetPoint("TOPLEFT", 0, -y); add:Show()
+    panel.reactionContent._rows[#panel.reactionContent._rows + 1] = add; y = y + 38
     panel.addReactionButton = add
-    local rest = CreateFrame("Frame", nil, panel.reactionContent, "BackdropTemplate")
-    rest:SetSize(10, 39); rest:SetPoint("TOPLEFT", 0, -y); rest:SetPoint("TOPRIGHT", 0, -y); Backdrop(rest, { 0.045, 0.05, 0.07, 1 })
-    if ns.LegacySkin then ns.LegacySkin:Row(rest, false) end
-    panel.otherwiseRow = rest
-    rest.line = CreateFrame("Frame", nil, rest)
-    rest.line:SetPoint("TOPLEFT"); rest.line:SetPoint("TOPRIGHT"); rest.line:SetHeight(39); rest.line:EnableMouse(false)
-    local restLabel = Text(rest, "GameFontHighlight", "Otherwise", C.muted); restLabel:SetPoint("LEFT", rest.line, "LEFT", 29, 0)
+    local rest = pool.otherwise
+    if not rest then
+        rest = CreateFrame("Frame", nil, panel.reactionContent, "BackdropTemplate")
+        rest:SetSize(10, 39); Backdrop(rest, { 0.045, 0.05, 0.07, 1 })
+        if ns.LegacySkin then ns.LegacySkin:Row(rest, false) end
+        rest.line = CreateFrame("Frame", nil, rest)
+        rest.line:SetPoint("TOPLEFT"); rest.line:SetPoint("TOPRIGHT"); rest.line:SetHeight(39); rest.line:EnableMouse(false)
+        rest.label = Text(rest, "GameFontHighlight", "Otherwise", C.muted); rest.label:SetPoint("LEFT", rest.line, "LEFT", 29, 0)
+        rest.opacity = Button(rest, "", 54, nil)
+        rest.opacity:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        rest.opacity:SetPoint("RIGHT", rest.line, "RIGHT", -8, 0)
+        AddLayoutControls(rest)
+        pool.otherwise = rest
+    end
+    rest:ClearAllPoints(); rest:SetPoint("TOPLEFT", 0, -y); rest:SetPoint("TOPRIGHT", 0, -y); rest:Show()
     local visibilityParent = ns:GetVisibilityParent(id)
     local visibilityParentTarget = visibilityParent and ns.TargetByID[visibilityParent]
-    local restOpacity
-    restOpacity = Button(rest, visibilityParent and ("Follow " .. (visibilityParentTarget and visibilityParentTarget.label or visibilityParent)) or Percent(settings.atRest), visibilityParent and 132 or 54, function(self, button)
+    local restOpacity = rest.opacity
+    restOpacity:GetFontString():SetText(visibilityParent and ("Follow " .. (visibilityParentTarget and visibilityParentTarget.label or visibilityParent)) or Percent(settings.atRest))
+    restOpacity:SetWidth(visibilityParent and 132 or 54)
+    restOpacity:SetScript("OnClick", function(self, button)
         if visibilityParent then return end
         ns:OpenOpacityPicker("Otherwise", settings.atRest, function(value)
             settings.atRest = value
@@ -4740,12 +4836,10 @@ function ns:RenderSelectedTarget(id)
         end)
     end)
     restOpacity:SetEnabled(not visibilityParent)
-    restOpacity:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     SetTooltip(restOpacity, visibilityParent and "Follows parent" or "Otherwise opacity",
         nil)
-    restOpacity:SetPoint("RIGHT", rest.line, "RIGHT", -8, 0); panel.reactionContent._rows[#panel.reactionContent._rows + 1] = rest
-    AddLayoutControls(rest)
-    rest.layoutToggle:SetPoint("RIGHT", restOpacity, "LEFT", -5, 0)
+    panel.reactionContent._rows[#panel.reactionContent._rows + 1] = rest
+    rest.layoutToggle:ClearAllPoints(); rest.layoutToggle:SetPoint("RIGHT", restOpacity, "LEFT", -5, 0)
     ns:ConfigureLayoutLine(rest, id, settings, nil, layoutAvailable, layoutAvailable and settings.restLayoutLine == true,
         29 + 80, 8 + (visibilityParent and 132 or 54) + 5 + 22 + 5)
     panel.otherwiseRow = rest
@@ -4767,14 +4861,19 @@ function ns:RenderSelectedTarget(id)
         timingText = "In " .. Seconds(settings.fadeInDuration) .. "  /  Out " .. Seconds(settings.fadeOutDuration)
             .. "  /  Wait " .. Seconds(settings.fadeDelay)
     end
-    local fade = Button(p, timingText, 100, OpenTiming)
-    fade:SetPoint("TOPLEFT", 0, 0); fade:SetPoint("TOPRIGHT", 0, 0)
+    local fade = pool.timing
+    if not fade then
+        fade = Button(p, "", 100, nil)
+        fade:SetPoint("TOPLEFT", 0, 0); fade:SetPoint("TOPRIGHT", 0, 0)
+        pool.timing = fade
+    end
+    fade:GetFontString():SetText(timingText); fade:SetScript("OnClick", OpenTiming); fade:Show()
     p._rows[#p._rows + 1] = fade
     local timingHelp = target.timingOwner == "host" and (target.timingNote or "Fade speed set by its addon")
         or string.format("In %.2fs, out %.2fs", settings.fadeInDuration, settings.fadeOutDuration)
     SetTooltip(fade, target.timingLabel or "Frame timing", timingHelp)
     local preview
-    preview = InspectorActionCard(p, fade, "eye", "Frame outline", panel.selectionOutlineEnabled ~= false, function()
+    preview = PooledInspectorCard(pool, p, fade, "eye", "Frame outline", panel.selectionOutlineEnabled ~= false, function()
         panel.selectionOutlineEnabled = not panel.selectionOutlineEnabled
         ns:RefreshSelectionOutline(); ns:RenderSelectedTarget(id)
     end)
@@ -4791,8 +4890,13 @@ function ns:RenderSelectedTarget(id)
         if ns.GetMinimapNativeMarkerAvailability then
             markerAvailable, markerReason = ns:GetMinimapNativeMarkerAvailability(mode)
         end
-        local markers
-        markers = Button(p, markerAvailable and ("Markers: " .. (labels[mode] or mode)) or "Markers: unavailable", 206, function()
+        local markers = pool.markers
+        if not markers then
+            markers = Button(p, "", 206, nil)
+            pool.markers = markers
+        end
+        markers:GetFontString():SetText(markerAvailable and ("Markers: " .. (labels[mode] or mode)) or "Markers: unavailable")
+        markers:SetScript("OnClick", function()
             local modeAvailable, reason = true, nil
             if ns.GetMinimapNativeMarkerAvailability then
                 modeAvailable, reason = ns:GetMinimapNativeMarkerAvailability(settings.nativeMarkerMode or "keep")
@@ -4816,7 +4920,8 @@ function ns:RenderSelectedTarget(id)
         SetTooltip(markers, "Minimap markers",
             markerAvailable and ("Experimental. Leave unchanged is safest" .. (markerReason and ("\n\n" .. markerReason) or ""))
                 or (markerReason or "Not in this client"))
-        markers:SetPoint("TOPLEFT", preview, "BOTTOMLEFT", 0, -6); p._rows[#p._rows + 1] = markers
+        markers:ClearAllPoints(); markers:SetPoint("TOPLEFT", preview, "BOTTOMLEFT", 0, -6); markers:Show()
+        p._rows[#p._rows + 1] = markers
         relationshipAnchor = markers
     end
     local _, currentRevealGroup = ns:GetRevealGroup(id)
@@ -4824,29 +4929,41 @@ function ns:RenderSelectedTarget(id)
     local currentChildCount = 0; for _ in pairs(currentChildren) do currentChildCount = currentChildCount + 1 end
     local currentVisibilityChildren = ns:GetVisibilityChildren(id)
     local currentVisibilityCount = 0; for _ in pairs(currentVisibilityChildren) do currentVisibilityCount = currentVisibilityCount + 1 end
-    local group = InspectorActionCard(p, relationshipAnchor, "group", "Hover group", currentRevealGroup ~= nil, function() ns:OpenConnectionPicker("group", id) end)
+    local group = PooledInspectorCard(pool, p, relationshipAnchor, "group", "Hover group", currentRevealGroup ~= nil, function() ns:OpenConnectionPicker("group", id) end)
     SetTooltip(group, nil, nil)
     p._rows[#p._rows + 1] = group
-    local link = InspectorActionCard(p, group, "link", "Linked child", currentChildCount > 0, function() ns:OpenConnectionPicker("link", id) end)
+    local link = PooledInspectorCard(pool, p, group, "link", "Linked child", currentChildCount > 0, function() ns:OpenConnectionPicker("link", id) end)
     p._rows[#p._rows + 1] = link
     SetTooltip(link, nil, nil)
-    local visibility = InspectorActionCard(p, link, "visibility", "Visibility child", currentVisibilityCount > 0, function() ns:OpenConnectionPicker("visibility", id) end)
+    local visibility = PooledInspectorCard(pool, p, link, "visibility", "Visibility child", currentVisibilityCount > 0, function() ns:OpenConnectionPicker("visibility", id) end)
     p._rows[#p._rows + 1] = visibility
     SetTooltip(visibility, nil, nil)
     local previous = visibility
     -- Relationship status rows: one line each, fact on the left and its
     -- undo action on the right. Stacking label-over-button doubled the
     -- height and pushed the list into the Reset frame footer.
+    local statusIndex = 0
     local function StatusRow(text, color, label, width, onClick)
-        local row = CreateFrame("Frame", nil, p)
-        row:SetHeight(24)
+        statusIndex = statusIndex + 1
+        local row = pool.statusRows[statusIndex]
+        if not row then
+            row = CreateFrame("Frame", nil, p)
+            row:SetHeight(24)
+            row.fact = Text(row, "GameFontHighlightSmall", text, color)
+            row.fact:SetJustifyH("LEFT"); row.fact:SetWordWrap(false)
+            row.action = Button(row, label, width, onClick)
+            row.action:SetPoint("RIGHT", 0, 0)
+            pool.statusRows[statusIndex] = row
+        else
+            row.fact:SetText(text); RetintText(row.fact, color)
+            row.action:GetFontString():SetText(label); row.action:SetWidth(width)
+            row.action:SetScript("OnClick", onClick)
+        end
+        row:ClearAllPoints()
         row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, previous == visibility and -12 or -6)
         row:SetPoint("RIGHT", p, "RIGHT", 0, 0)
-        local fact = Text(row, "GameFontHighlightSmall", text, color)
-        fact:SetPoint("LEFT", 2, 0); fact:SetPoint("RIGHT", -(width + 8), 0)
-        fact:SetJustifyH("LEFT"); fact:SetWordWrap(false)
-        local action = Button(row, label, width, onClick)
-        action:SetPoint("RIGHT", 0, 0)
+        row.fact:ClearAllPoints(); row.fact:SetPoint("LEFT", 2, 0); row.fact:SetPoint("RIGHT", -(width + 8), 0)
+        row:Show()
         p._rows[#p._rows + 1] = row
         previous = row
         return row

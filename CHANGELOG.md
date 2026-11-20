@@ -6,6 +6,7 @@
 - Removing a frame whose window never appeared lets updates sleep again
 - Lighter chat, health/mana, minimap and layout checks (fewer temporary tables)
 - Unused code removed
+- Editor reuses its inspector widgets instead of building new ones on every change
 
 ## 1.3.9 - 2026-11-20
 
