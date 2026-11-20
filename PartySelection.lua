@@ -4,8 +4,9 @@ local regionHooks, guards = setmetatable({}, { __mode = "k" }), {}
 local states = setmetatable({}, { __mode = "k" })
 local memberPrefixes = { "CompactPartyFrameMember", "CompactPartyFramePet" }
 
+local function Invoke(frame, method) return frame[method](frame) end
 local function Call(frame, method)
-    local ok, value = pcall(function() return frame[method](frame) end)
+    local ok, value = pcall(Invoke, frame, method)
     if ok and not (issecretvalue and issecretvalue(value)) then return value end
 end
 
@@ -205,8 +206,14 @@ target.resolve = function()
     if fallback then
         -- Also discovers party members created while the root is already faded,
         -- and reconciles writes when hooks cannot yet be installed in combat.
+        -- The root SetAlpha hook syncs every opacity change at once; this
+        -- bounded safety scan (up to 128 frames) runs at 4 Hz, not every tick.
         Hook(fallback)
-        Sync(fallback)
+        local state, now = states[fallback], GetTime and GetTime() or nil
+        if not now or not state or not state.syncedAt or now - state.syncedAt >= 0.25 or now < state.syncedAt then
+            if state then state.syncedAt = now end
+            Sync(fallback)
+        end
     end
     return fallback
 end

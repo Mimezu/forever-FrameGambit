@@ -1,5 +1,10 @@
 # Frame Gambit changelog
 
+## 1.3.6 - 2026-11-20
+
+- Lighter rule checks: frame ancestry answers reused within one update
+- Party frames: border safety scan 4 times a second instead of 20 (fades still instant)
+
 ## 1.3.5 - 2026-11-20
 
 - Cinematic: no stutter every 2.5 s (full UI rescan only when frames change, else every 15 s)

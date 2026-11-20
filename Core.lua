@@ -3931,14 +3931,27 @@ function ns:ResolveTargetThisTick(id)
 end
 
 -- The cache is live only inside one evaluator tick; every tick starts empty.
+-- The same window holds a memo for pure frame-ancestry checks (suite window,
+-- Frame Gambit's own UI), asked hundreds of times per tick for the same frames.
 function ns:BeginTargetResolveCache()
     resolvedStamp = nil
     resolveCacheActive = true
+    self.tickMemo = { stamp = GetTime() }
 end
 
 function ns:EndTargetResolveCache()
     resolveCacheActive = false
     resolvedStamp = nil
+    self.tickMemo = nil
+end
+
+-- The memo table for one check, or nil outside an evaluator tick.
+function ns:TickMemo(kind)
+    local memo = self.tickMemo
+    if not memo or memo.stamp ~= GetTime() then return nil end
+    local t = memo[kind]
+    if not t then t = {}; memo[kind] = t end
+    return t
 end
 
 function ns:UpdateHover()

@@ -29,7 +29,7 @@ end
 local function GetNameOf(frame) return frame:GetName() end
 local function GetParentOf(frame) return frame:GetParent() end
 
-function ns:IsCinematicSuiteWindow(frame)
+local function IsSuiteWindow(frame)
     for _ = 1, 64 do
         if IsSecret(frame) or not frame then return false end
         if frame == UIParent or frame == WorldFrame then return false end
@@ -44,6 +44,15 @@ function ns:IsCinematicSuiteWindow(frame)
     return false
 end
 
+function ns:IsCinematicSuiteWindow(frame)
+    if IsSecret(frame) or not frame then return false end
+    local memo = self.TickMemo and self:TickMemo("suite")
+    if not memo then return IsSuiteWindow(frame) end
+    local cached = memo[frame]
+    if cached == nil then cached = IsSuiteWindow(frame); memo[frame] = cached end
+    return cached
+end
+
 -- Future suite dialogs can opt in without changing their parenting or strata.
 FrameGambitAPI = FrameGambitAPI or {}
 function FrameGambitAPI.RegisterCinematicWindow(frame)
@@ -51,6 +60,7 @@ function FrameGambitAPI.RegisterCinematicWindow(frame)
     local ok, valid = pcall(function() return type(frame.GetParent) == "function" and type(frame.GetName) == "function" end)
     if not ok or not valid then return false end
     registered[frame] = true
+    if ns.tickMemo then ns.tickMemo.suite = nil end
     if ns.Wake then ns:Wake() end
     return true
 end

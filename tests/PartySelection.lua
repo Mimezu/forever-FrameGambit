@@ -85,4 +85,23 @@ CompactPartyFrame:SetAlpha(0.5)
 near(member.selectionHighlight:GetAlpha(), 0.3)
 target.release(CompactPartyFrame)
 near(member.selectionHighlight:GetAlpha(), 0.6)
+-- With a clock, the resolve-time safety scan runs at most every 0.25 s: a
+-- late member joins on the next scan, root fades still apply at once.
+local clock = 100
+GetTime = function() return clock end
+target.acquire(CompactPartyFrame)
+CompactPartyFrame:SetAlpha(0)
+target.resolve()
+local later = frame()
+later.selectionHighlight = frame(1, true)
+table.insert(CompactPartyFrame.children, later)
+clock = clock + 0.1; target.resolve()
+near(later.selectionHighlight:GetAlpha(), 1)
+clock = clock + 0.2; target.resolve()
+near(later.selectionHighlight:GetAlpha(), 0)
+CompactPartyFrame:SetAlpha(0.5)
+near(later.selectionHighlight:GetAlpha(), 0.5)
+target.release(CompactPartyFrame)
+near(later.selectionHighlight:GetAlpha(), 1)
+GetTime = nil
 print("Party selection opacity tests passed")

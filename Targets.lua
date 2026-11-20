@@ -272,8 +272,7 @@ local function IsForbiddenFrame(frame)
     return SafeMethod(frame, "IsForbidden") == true
 end
 
-function ns:IsFrameGambitFrame(frame)
-    if not frame then return false end
+local function IsOwnFrame(self, frame)
     local current, seen = frame, {}
     while current and not seen[current] do
         if current == self.Options or current == self.Picker
@@ -287,6 +286,15 @@ function ns:IsFrameGambitFrame(frame)
         current = SafeMethod(current, "GetParent")
     end
     return false
+end
+
+function ns:IsFrameGambitFrame(frame)
+    if not frame then return false end
+    local memo = self.TickMemo and self:TickMemo("own")
+    if not memo or (issecretvalue and issecretvalue(frame)) then return IsOwnFrame(self, frame) end
+    local cached = memo[frame]
+    if cached == nil then cached = IsOwnFrame(self, frame); memo[frame] = cached end
+    return cached
 end
 
 function ns:GetFramePickerRoot(frame)

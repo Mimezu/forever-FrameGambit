@@ -86,4 +86,21 @@ assert(BindCardsFrame.alpha == 0, "Normal profile behavior preserved")
 cinematic = true
 ns:ApplyTarget("suite_test", now)
 assert(BindCardsFrame.alpha == .85, "Cinematic returns dialog to native ownership")
+-- Tick memo: answers are reused only inside one evaluator tick and one game
+-- frame; registration and the next tick or frame always ask again.
+local loose = frame(nil, UIParent)
+assert(ns:TickMemo("suite") == nil, "no memo outside a tick")
+ns:BeginTargetResolveCache()
+assert(not ns:IsCinematicSuiteWindow(loose))
+loose.parent = BindCardsFrame
+assert(not ns:IsCinematicSuiteWindow(loose), "memoized within the tick")
+now = now + 0.01
+assert(ns:IsCinematicSuiteWindow(loose), "a new game frame asks again")
+local opt = frame(nil, UIParent)
+assert(not ns:IsCinematicSuiteWindow(opt))
+FrameGambitAPI.RegisterCinematicWindow(opt)
+assert(ns:IsCinematicSuiteWindow(opt), "registration clears the memo")
+ns:EndTargetResolveCache()
+loose.parent = UIParent
+assert(not ns:IsCinematicSuiteWindow(loose), "no memo after the tick")
 print("PASS: suite windows, late slash-command dialogs, descendants, rule bypass, HUD exclusions and restoration")
