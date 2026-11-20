@@ -55,9 +55,12 @@ local function ValidScale(value)
         and value >= 0 and value < math.huge
 end
 
+-- Indexing stays inside pcall (a forbidden frame can error); no closure per call.
+local function IndexFrame(object, key) return object[key] end
+
 local function Method(object, name, ...)
     if not object then return nil end
-    local okMethod, callback = pcall(function() return object[name] end)
+    local okMethod, callback = pcall(IndexFrame, object, name)
     if not okMethod or type(callback) ~= "function" then return nil end
     local ok, value = pcall(callback, object, ...)
     if not ok or IsSecret(value) then return nil end
@@ -346,7 +349,7 @@ end
 
 local function Children(frame)
     if not frame then return {} end
-    local okMethod, callback = pcall(function() return frame.GetChildren end)
+    local okMethod, callback = pcall(IndexFrame, frame, "GetChildren")
     if not okMethod or type(callback) ~= "function" then return {} end
     local values = { pcall(callback, frame) }
     if not table.remove(values, 1) then return {} end
@@ -355,7 +358,7 @@ end
 
 local function Regions(frame)
     if not frame then return {} end
-    local okMethod, callback = pcall(function() return frame.GetRegions end)
+    local okMethod, callback = pcall(IndexFrame, frame, "GetRegions")
     if not okMethod or type(callback) ~= "function" then return {} end
     local values = { pcall(callback, frame) }
     if not table.remove(values, 1) then return {} end

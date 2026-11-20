@@ -151,8 +151,11 @@ function ns:ResolveFrameLayout(id, settings, now)
     return scale, x, y, scaleIndex, positionIndex, instant
 end
 
+-- Indexing stays inside pcall (a forbidden frame can error); no closure per call.
+local function IndexFrame(frame, key) return frame[key] end
+
 local function Method(frame, name)
-    local ok, method = pcall(function() return frame[name] end)
+    local ok, method = pcall(IndexFrame, frame, name)
     return ok and type(method) == "function" and method or nil
 end
 
@@ -241,6 +244,12 @@ local function CanWrite(record)
     return not IsProtectedFrame(record.frame) and not IsProtectedFrame(record.base.relTo)
 end
 
+-- Scale first, then anchor; runs inside the caller's pcall.
+local function ApplyGeometry(setScale, setPoint, frame, wanted, current, base, x, y)
+    if math.abs(current - wanted) > 0.00001 then setScale(frame, wanted) end
+    setPoint(frame, base.point, base.relTo, base.relPoint, x, y)
+end
+
 local function WriteGeometry(record, scale, dx, dy)
     local frame, base = record.frame, record.base
     local factors = POINT_FACTORS[base.point:upper()]
@@ -250,7 +259,7 @@ local function WriteGeometry(record, scale, dx, dy)
         local ok, value = pcall(getEffective, frame)
         if ok and Finite(value) and value > 0 then effective = value end
     end
-    local uiOK, uiScale = pcall(function() return UIParent:GetEffectiveScale() end)
+    local uiOK, uiScale = pcall(UIParent and UIParent.GetEffectiveScale, UIParent)
     if not factors or not current or not effective or not uiOK or not Finite(uiScale) or uiScale <= 0 then return false end
     local sizeOK, width, height = pcall(frame.GetSize, frame)
     if not sizeOK or not Finite(width) or not Finite(height) then width, height = 0, 0 end
@@ -266,11 +275,7 @@ local function WriteGeometry(record, scale, dx, dy)
     local setScale, setPoint = EngineMethod(frame, "SetScale"), EngineMethod(frame, "SetPoint")
     if not setScale or not setPoint then return false end
     state.guard[frame] = true
-    local ok = pcall(function()
-        local wanted = base.scale * scale
-        if math.abs(current - wanted) > 0.00001 then setScale(frame, wanted) end
-        setPoint(frame, base.point, base.relTo, base.relPoint, x, y)
-    end)
+    local ok = pcall(ApplyGeometry, setScale, setPoint, frame, base.scale * scale, current, base, x, y)
     state.guard[frame] = nil
     if ok then
         record.applied = record.applied or {}
@@ -375,7 +380,8 @@ end
 local function IsLayoutPaused(id)
     local editMode = _G.EditModeManagerFrame
     if editMode then
-        local ok, active = pcall(function() return editMode:IsEditModeActive() end)
+        local isActive, ok, active = editMode.IsEditModeActive, false, nil
+        if type(isActive) == "function" then ok, active = pcall(isActive, editMode) end
         if ok and not IsSecret(active) and active == true then return "editMode" end
     end
     if ns.IsGamepadEditingTarget and ns:IsGamepadEditingTarget(id) then return "gamepadEdit" end

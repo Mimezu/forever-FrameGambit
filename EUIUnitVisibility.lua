@@ -17,9 +17,14 @@ local function Secret(value)
     return issecretvalue and issecretvalue(value) or false
 end
 
+-- Indexing stays inside pcall (a forbidden frame can error); no closure per call.
+local function IndexFrame(frame, key) return frame[key] end
+
 local function Alpha(frame)
     if not frame then return nil end
-    local ok, value = pcall(function() return frame:GetAlpha() end)
+    local okMethod, getAlpha = pcall(IndexFrame, frame, "GetAlpha")
+    local ok, value = false, nil
+    if okMethod and type(getAlpha) == "function" then ok, value = pcall(getAlpha, frame) end
     if ok and type(value) == "number" and not Secret(value) and value == value and value >= 0 and value <= 1 then
         return value
     end
@@ -39,7 +44,9 @@ end
 local function SetFrameAlpha(frame, value)
     if not frame or type(value) ~= "number" then return false end
     guarded = true
-    local ok = pcall(function() frame:SetAlpha(value) end)
+    local okMethod, setAlpha = pcall(IndexFrame, frame, "SetAlpha")
+    local ok = false
+    if okMethod and type(setAlpha) == "function" then ok = pcall(setAlpha, frame, value) end
     guarded = false
     return ok
 end
