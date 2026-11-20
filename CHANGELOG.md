@@ -1,5 +1,12 @@
 # Frame Gambit changelog
 
+## 1.3.10 - 2026-11-20
+
+- Version shown in the editor and /fg audit reads the TOC (was stuck at 1.3.0)
+- Removing a frame whose window never appeared lets updates sleep again
+- Lighter chat, health/mana, minimap and layout checks (fewer temporary tables)
+- Unused code removed
+
 ## 1.3.9 - 2026-11-20
 
 - Gamepad rules read Gamepad Companion's state once per update, not once per frame rule
