@@ -484,22 +484,29 @@ local function SafeValue(func, ...)
     return value
 end
 
+-- Friend templates are constants; build each pattern once.
+local friendPatterns = {}
 local function MatchesFriendNotification(message, template)
     if IsSecret(message) or IsSecret(template) or type(message) ~= "string"
         or type(template) ~= "string" or template == "" then return false end
-    -- Use the client's localized format, including its player-link markup.
-    -- Escape punctuation and replace only string format arguments, never names.
-    local parts, start = { "^" }, 1
-    while true do
-        local first, last = template:find("%%[%d%$]*s", start)
-        local literal = template:sub(start, first and first - 1 or #template)
-        parts[#parts + 1] = literal:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-        if not first then break end
-        parts[#parts + 1] = ".+"
-        start = last + 1
+    local pattern = friendPatterns[template]
+    if not pattern then
+        -- Use the client's localized format, including its player-link markup.
+        -- Escape punctuation and replace only string format arguments, never names.
+        local parts, start = { "^" }, 1
+        while true do
+            local first, last = template:find("%%[%d%$]*s", start)
+            local literal = template:sub(start, first and first - 1 or #template)
+            parts[#parts + 1] = literal:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+            if not first then break end
+            parts[#parts + 1] = ".+"
+            start = last + 1
+        end
+        parts[#parts + 1] = "$"
+        pattern = table.concat(parts)
+        friendPatterns[template] = pattern
     end
-    parts[#parts + 1] = "$"
-    return message:match(table.concat(parts)) ~= nil
+    return message:match(pattern) ~= nil
 end
 
 local function CallFrameIsShown(frame)
