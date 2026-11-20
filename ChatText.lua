@@ -24,15 +24,18 @@ end
 
 function ns:ObserveChatTextMessage(text)
     if not FrameGambitDB or not ReadableText(text) then return end
-    local message, now, found = Fold(VisibleText(text)), GetTime(), false
+    local message, now, found = nil, GetTime(), false
     for _, settings in pairs(self:Profile().targets or {}) do
         if type(settings) == "table" and settings.enabled ~= false then
             for _, rule in ipairs(settings.reactions or {}) do
                 if rule.enabled ~= false and rule.condition == "chat_text" then
                     local query = self:NormalizeChatText(rule.chatText)
-                    if query ~= "" and message:find(Fold(query), 1, true) then
-                        matches[rule] = { query = query, time = now }
-                        found = true
+                    if query ~= "" then
+                        message = message or Fold(VisibleText(text))
+                        if message:find(Fold(query), 1, true) then
+                            matches[rule] = { query = query, time = now }
+                            found = true
+                        end
                     end
                 end
             end
