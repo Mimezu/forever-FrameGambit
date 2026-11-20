@@ -3401,6 +3401,7 @@ end
 local PARTY_PERCENTAGE_CONDITIONS = { "party_health", "party_mana" }
 
 function ns:BuildPercentageContext(needed, context)
+    if not (needed.player_health or needed.player_mana or needed.party_health or needed.party_mana) then return end
     local samples = {}
     local function Read(unit, mana)
         local key = unit .. (mana and ":mana" or ":health")
