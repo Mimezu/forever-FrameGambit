@@ -4321,7 +4321,7 @@ function ns:ApplyTarget(id, tickNow)
     local alpha = desired
     local transitionComplete = false
     if transition then
-        local duration = math.max(0.01, (transition.to > transition.from and settings.fadeInDuration or settings.fadeOutDuration) or settings.fadeDuration or 0.2)
+        local duration = transition.duration
         local progress = math.min(1, math.max(0, (now - transition.startedAt) / duration))
         alpha = transition.from + (transition.to - transition.from) * progress
         if progress >= 1 then
