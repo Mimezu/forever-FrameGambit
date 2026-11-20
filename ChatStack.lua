@@ -189,11 +189,9 @@ function proxy:GetRect()
     for _, frame in ipairs(surfaces) do
         if Method(frame, "IsShown") and type(frame.GetRect) == "function" then
             local ok, x, y, w, h = pcall(frame.GetRect, frame)
-            local usable = ok
-            for _, value in ipairs({ x, y, w, h }) do
-                if (issecretvalue and issecretvalue(value)) or type(value) ~= "number" then usable = false end
-            end
-            if usable and x and y and w and h and w > 0 and h > 0 then
+            local usable = ok and type(x) == "number" and type(y) == "number" and type(w) == "number" and type(h) == "number"
+                and not (issecretvalue and (issecretvalue(x) or issecretvalue(y) or issecretvalue(w) or issecretvalue(h)))
+            if usable and w > 0 and h > 0 then
                 local ratio = (Method(frame, "GetEffectiveScale") or scale) / scale
                 x, y, w, h = x * ratio, y * ratio, w * ratio, h * ratio
                 left = left and math.min(left, x) or x
