@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.9 - 2026-11-20
+
+- Gamepad rules read Gamepad Companion's state once per update, not once per frame rule
+
 ## 1.3.8 - 2026-11-20
 
 - Cinematic: no periodic safety sweep (no more hitch); new frames still caught within 2.5 s

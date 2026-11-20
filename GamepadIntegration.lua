@@ -19,13 +19,23 @@ local function Provider()
         and type(api.GetState) == "function" then return api end
 end
 
-local function State()
+local function ReadState()
     local api = Provider()
     if not api then return nil end
     local ok, state = pcall(api.GetState)
     if not ok or Secret(state) or type(state) ~= "table" then return nil end
     if Secret(state.available) or state.available ~= true then return nil end
     return state
+end
+-- GetState hands back a deep copy, and the evaluator asks for every target on
+-- every update (~880k copies in 3 min). Inside one evaluator update nothing can
+-- change it, so read it once there; press notifications and every other path
+-- still read it live.
+local function State()
+    local memo = ns.TickMemo and ns:TickMemo("gamepadState")
+    if not memo then return ReadState() end
+    if not memo.read then memo.read, memo.state = true, ReadState() end
+    return memo.state
 end
 
 local function Gameplay(state)
