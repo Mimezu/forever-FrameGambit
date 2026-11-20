@@ -1,7 +1,10 @@
 local ADDON, ns = ...
 
 ns.NAME = "Frame Gambit"
-ns.VERSION = "1.3.0"
+-- The TOC is the one source; the literal is a fallback for the test harness.
+local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+local tocVersion = getMeta and getMeta(ADDON, "Version")
+ns.VERSION = type(tocVersion) == "string" and tocVersion ~= "" and tocVersion or "1.3.9"
 ns.ICON_TEXTURE = "Interface\\AddOns\\FrameGambit\\Assets\\FrameGambitIcon"
 -- Increment only when the player-facing Help topics materially change.
 -- Missing state adopts the current revision, so a dot never appears merely
