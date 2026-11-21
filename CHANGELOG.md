@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.12 - 2026-11-21
+
+- Clean screenshot in combat (a level-up mid-fight) no longer trips a blocked-action error: names over the world stay for that shot
+
 ## 1.3.11 - 2026-11-20
 
 - New condition: Eating or drinking (Player)
