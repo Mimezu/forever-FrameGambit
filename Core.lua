@@ -4331,7 +4331,11 @@ function ns:NudgeMinimapZoom()
     if not levelsOK or IsSecret(levels) or type(levels) ~= "number" then levels = 6 end
     local other = zoom + 1 < levels and zoom + 1 or zoom - 1
     if other < 0 or not pcall(map.SetZoom, map, other) then return false end
-    C_Timer.After(0.1, function() pcall(map.SetZoom, map, zoom) end)
+    C_Timer.After(0.1, function()
+        -- Leave a zoom the player changed in the meantime alone.
+        local nowOK, now = pcall(map.GetZoom, map)
+        if nowOK and not IsSecret(now) and now == other then pcall(map.SetZoom, map, zoom) end
+    end)
     return true
 end
 

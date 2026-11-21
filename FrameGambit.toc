@@ -2,7 +2,7 @@
 ## Title: Frame Gambit
 ## Notes: Friendly, priority-based visibility gambits for your UI.
 ## Author: Mimezu
-## Version: 1.3.12
+## Version: 1.3.13
 ## SavedVariables: FrameGambitDB
 ## LoadSavedVariablesFirst: 1
 # Settings load through native SavedVariables.
@@ -31,6 +31,7 @@ DetailsAdapter.lua
 EUIUnitVisibility.lua
 EUIChatVisibility.lua
 MinimapStack.lua
+MinimapRedraw.lua
 CinematicLetterbox.lua
 CinematicCamera.lua
 LegacySkin.lua

@@ -1,5 +1,10 @@
 # Frame Gambit changelog
 
+## 1.3.13 - 2026-11-21
+
+- Minimap redraws when it comes back after being faded or hidden (no more black map)
+- A zoom you change during that redraw is kept
+
 ## 1.3.12 - 2026-11-21
 
 - Clean screenshot in combat (a level-up mid-fight) no longer trips a blocked-action error: names over the world stay for that shot
