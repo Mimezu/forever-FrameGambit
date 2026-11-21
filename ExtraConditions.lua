@@ -49,6 +49,11 @@ ns.CONDITION_INFO.eating_drinking = {
     help = nil,
 }
 
+ns.CONDITION_INFO.fishing_pole = {
+    label = "Fishing pole", category = "character", kind = "state",
+    help = nil,
+}
+
 -- UI map IDs, not localized zone names. Child maps inherit their city's ID.
 local CITY_MAPS = {
     [84] = true, [85] = true, [87] = true, [88] = true, [89] = true, [90] = true,
@@ -164,6 +169,19 @@ local function EatingOrDrinking()
     return false
 end
 
+-- Main hand (slot 16) holds an item of class Weapon (2), subclass Fishing Pole (20).
+local MAIN_HAND = 16
+local function FishingPoleEquipped()
+    local itemID = Read(GetInventoryItemID, "player", MAIN_HAND)
+    if itemID == nil then return false end
+    if not Number(itemID) then return nil end
+    local instant = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
+    if type(instant) ~= "function" then return nil end
+    local ok, _, _, _, _, _, classID, subclassID = pcall(instant, itemID)
+    if not ok or not Number(classID) or not Number(subclassID) then return nil end
+    return classID == 2 and subclassID == 20
+end
+
 local function ReadPlayerAuras()
     local byIndex = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
     if type(byIndex) ~= "function" then return nil end
@@ -248,6 +266,7 @@ function ns:BuildExtraConditionContext(needed, context)
     if needed.elite_combat then context.elite_combat = InEliteCombat() end
     if needed.campfire_sitting then context.campfire_sitting = SittingAtCampfire() end
     if needed.eating_drinking then context.eating_drinking = EatingOrDrinking() end
+    if needed.fishing_pole then context.fishing_pole = FishingPoleEquipped() end
 end
 
 -- Compile localized printf templates, preserving positional argument indices.
@@ -342,6 +361,12 @@ end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("CHAT_MSG_LOOT")
-events:SetScript("OnEvent", function(_, _, ...)
+events:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+events:SetScript("OnEvent", function(_, event, ...)
+    if event == "PLAYER_EQUIPMENT_CHANGED" then
+        local slot = ...
+        if slot == MAIN_HAND and ns.Wake then ns:Wake() end
+        return
+    end
     ns:ObserveExtraLootMessage(select(1, ...), select(2, ...), select(12, ...))
 end)

@@ -200,11 +200,29 @@ playerAuras[2] = { spellId = 9, name = "Well Fed" }; assert(eating() == false, "
 playerAuras[2] = { spellId = 9, name = secret }; assert(eating() == false, "Secret name is not a meal")
 playerAuras[2] = { spellId = 9, name = "Drink", harmful = true }; assert(eating() == false, "Only helpful auras")
 
+-- Fishing pole: main-hand item is Weapon (2) / Fishing Pole (20).
+local mainHand, items = nil, { [6256] = { 2, 20 }, [25] = { 2, 7 } }
+GetInventoryItemID = function(_, slot) return slot == 16 and mainHand or nil end
+C_Item = { GetItemInfoInstant = function(id)
+    local info = items[id]; if info then return id, nil, nil, nil, nil, info[1], info[2] end
+end }
+local poleNeed = { fishing_pole = true }
+local function pole() local c = {}; ns:BuildExtraConditionContext(poleNeed, c); return c.fishing_pole end
+assert(pole() == false, "Empty main hand")
+mainHand = 6256; assert(pole() == true, "Fishing Pole")
+mainHand = 25; assert(pole() == false, "Sword")
+mainHand = secret; assert(pole() == nil, "Secret item is unknown")
+local wakesBefore = wakes
+mainHand = 6256; driver.scripts.OnEvent(driver, "PLAYER_EQUIPMENT_CHANGED", 16, true)
+assert(wakes == wakesBefore + 1, "Main-hand swap wakes")
+driver.scripts.OnEvent(driver, "PLAYER_EQUIPMENT_CHANGED", 1, true)
+assert(wakes == wakesBefore + 1, "Other slots do not wake")
+
 -- The module uses the same shared evaluator and profile wire format as Core.
 ns.IsCinematicActive = function() return false end
 ns.ResolveTarget = function() return {} end
 local reactions = {}
-for index, id in ipairs({ "major_city", "party_combat", "elite_combat", "chat_party_loot", "chat_loot_winner", "campfire_sitting", "eating_drinking" }) do
+for index, id in ipairs({ "major_city", "party_combat", "elite_combat", "chat_party_loot", "chat_loot_winner", "campfire_sitting", "eating_drinking", "fishing_pole" }) do
     reactions[index] = { id = index, condition = id, opacity = 1 }
 end
 FrameGambitDB = { profile = "Default", profiles = { Default = { targets = {
