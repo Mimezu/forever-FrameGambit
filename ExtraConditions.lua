@@ -172,7 +172,9 @@ end
 -- Main hand (slot 16) holds an item of class Weapon (2), subclass Fishing Pole (20).
 local MAIN_HAND = 16
 local function FishingPoleEquipped()
-    local itemID = Read(GetInventoryItemID, "player", MAIN_HAND)
+    if type(GetInventoryItemID) ~= "function" then return nil end
+    local read, itemID = pcall(GetInventoryItemID, "player", MAIN_HAND)
+    if not read or Secret(itemID) then return nil end
     if itemID == nil then return false end
     if not Number(itemID) then return nil end
     local instant = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
