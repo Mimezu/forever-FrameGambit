@@ -124,6 +124,17 @@ combat = true
 FrameGambit_CleanScreenshot(); equal(seenAtShot.plate, 1, "combat: protected frame untouched"); equal(seenAtShot.loose, 0, "combat: others still go")
 Saved(); RunTimers(); combat = false
 
+-- In combat the world's names and bars stay (the game blocks hiding them then).
+local worldCalls = 0
+local realWorld = SetInWorldUIVisibility
+SetInWorldUIVisibility = function(v) worldCalls = worldCalls + 1; realWorld(v) end
+combat = true
+FrameGambit_CleanScreenshot(); Saved(); RunTimers(); combat = false
+equal(worldCalls, 0, "combat: world names not hidden")
+FrameGambit_CleanScreenshot(); Saved(); RunTimers()
+check(worldCalls >= 2, "out of combat: world names hidden and shown")
+SetInWorldUIVisibility = realWorld
+
 -- A protected minimap (combat) is left alone; a hidden one stays hidden.
 mapProtected = true
 FrameGambit_CleanScreenshot(); equal(seenAtShot.map, true, "protected minimap untouched"); Saved(); RunTimers()

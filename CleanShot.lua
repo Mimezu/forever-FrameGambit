@@ -156,7 +156,8 @@ function FrameGambit_CleanScreenshot()
     end
     HideMinimap(p)
     if p.alpha then Sweep(p) end
-    if SetInWorldUIVisibility then p.world = pcall(SetInWorldUIVisibility, false) end
+    -- (names and bars over the world: not in combat, where the game blocks it)
+    if SetInWorldUIVisibility and not (InCombatLockdown and InCombatLockdown()) then p.world = pcall(SetInWorldUIVisibility, false) end
     if not pcall(Screenshot) then Restore(); return end
     C_Timer.After(SAFETY, function() if pending == p then Restore() end end)
 end
