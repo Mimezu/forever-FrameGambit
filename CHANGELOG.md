@@ -1,5 +1,9 @@
 # Frame Gambit changelog
 
+## 1.3.14 - 2026-11-26
+
+- Cinematic keeps GamepadCompanion's fishing float, and the cast bar stays dark while the float stands in for it (Fishing with Cast ring on)
+
 ## 1.3.13 - 2026-11-21
 
 - Minimap redraws when it comes back after being faded or hidden (no more black map)

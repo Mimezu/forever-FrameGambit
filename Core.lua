@@ -1280,6 +1280,8 @@ local CINEMATIC_LOCKED_NAMES = {
     StaticPopup4 = true,
     GameMenuFrame = true,
     SettingsPanel = true,
+    -- GamepadCompanion's fishing float: it is the cast bar while you fish
+    GamepadCompanionLure = true,
 }
 
 local function SafeFrameName(frame)
@@ -3560,7 +3562,18 @@ function ns:GetSpecActivity(classID, specID)
     return result
 end
 
+-- GamepadCompanion's fishing float stands in for the cast bar while you fish:
+-- the cast bar's Casting row then stays dark instead of fighting it
+local function FishingFloatIsCastBar()
+    local api = _G and _G.GamepadCompanionAPI
+    local hides = type(api) == "table" and api.FishingHidesCastBar
+    if type(hides) ~= "function" then return false end
+    local ok, value = pcall(hides)
+    return ok and not IsSecret(value) and value == true
+end
+
 function ns:ConditionIsMet(condition, id, reaction, isRequirement, evaluationNow)
+    if condition == "casting" and id == "eui_castbar" and FishingFloatIsCastBar() then return false end
     if self:IsPercentageCondition(condition) then
         return not isRequirement and self:PercentageConditionIsMet(condition, reaction) or false
     end
